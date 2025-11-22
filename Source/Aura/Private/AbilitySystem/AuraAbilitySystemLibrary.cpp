@@ -1,7 +1,4 @@
 // Copyright Druid Mechanics
-
-
-#include "Engine/OverlapResult.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
@@ -12,6 +9,7 @@
 #include "Interaction/CombatInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/AuraPlayerState.h"
+#include "Engine/OverlapResult.h"
 #include "UI/HUD/AuraHUD.h"
 #include "UI/WidgetController/AuraWidgetController.h"
 
