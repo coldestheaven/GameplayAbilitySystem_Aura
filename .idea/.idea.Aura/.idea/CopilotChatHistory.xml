@@ -4,6 +4,11 @@
     <option name="conversations">
       <list>
         <Conversation>
+          <option name="createTime" value="1754979840931" />
+          <option name="id" value="01989cf333a379f49bfe098fa68d7b1c" />
+          <option name="updateTime" value="1754979840931" />
+        </Conversation>
+        <Conversation>
           <option name="createTime" value="1739865639064" />
           <option name="id" value="01951812c89872e093f9eb7b8b16fa03" />
           <option name="title" value="新对话 2025年2月18日 16:00:39" />
@@ -86,7 +91,7 @@
                       <option name="filename" value="AuraUserWidget.cpp" />
                       <option name="language" value="cpp" />
                       <option name="range">
-                        <Range>
+                        <CommitRange>
                           <option name="dontDisplayRange" value="true" />
                           <option name="end">
                             <Position />
@@ -94,7 +99,7 @@
                           <option name="start">
                             <Position />
                           </option>
-                        </Range>
+                        </CommitRange>
                       </option>
                       <option name="url" value="file:///D:/UE/GameplayAbilitySystem_Aura/Source/Aura/Private/UI/Widget/AuraUserWidget.cpp" />
                     </CodeReferencesBean>
@@ -129,7 +134,7 @@
                       <option name="filename" value="AuraFireBall.h" />
                       <option name="language" value="cpp" />
                       <option name="range">
-                        <Range>
+                        <CommitRange>
                           <option name="dontDisplayRange" value="true" />
                           <option name="end">
                             <Position />
@@ -137,7 +142,7 @@
                           <option name="start">
                             <Position />
                           </option>
-                        </Range>
+                        </CommitRange>
                       </option>
                       <option name="url" value="file:///D:/UE/GameplayAbilitySystem_Aura/Source/Aura/Public/Actor/AuraFireBall.h" />
                     </CodeReferencesBean>
@@ -172,7 +177,7 @@
                       <option name="filename" value="Actor.h" />
                       <option name="language" value="cpp" />
                       <option name="range">
-                        <Range>
+                        <CommitRange>
                           <option name="dontDisplayRange" value="true" />
                           <option name="end">
                             <Position />
@@ -180,7 +185,7 @@
                           <option name="start">
                             <Position />
                           </option>
-                        </Range>
+                        </CommitRange>
                       </option>
                       <option name="url" value="file:///C:/Program%20Files/Epic%20Games/UE_5.5/Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h" />
                     </CodeReferencesBean>
@@ -215,7 +220,7 @@
                       <option name="filename" value="Actor.h" />
                       <option name="language" value="cpp" />
                       <option name="range">
-                        <Range>
+                        <CommitRange>
                           <option name="dontDisplayRange" value="true" />
                           <option name="end">
                             <Position />
@@ -223,7 +228,7 @@
                           <option name="start">
                             <Position />
                           </option>
-                        </Range>
+                        </CommitRange>
                       </option>
                       <option name="url" value="file:///C:/Program%20Files/Epic%20Games/UE_5.5/Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h" />
                     </CodeReferencesBean>
