@@ -1853,7 +1853,7 @@ UE_LOG(LogTemp, Warning, TEXT("Applying damage: %.2f of type %s"),
 
 ### 扩展阅读
 
-- [技能系统详细文档](./Ability_System.md) - 深入了解技能系统
+- [技能系统详细文档](../Core/Ability_System.md) - 深入了解技能系统
 - [伤害计算系统](./Systems/Damage_Calculation.md) - 了解伤害计算机制
 - [Debuff 系统](./Systems/Debuff_System.md) - 了解 Debuff 实现
 - [各技能详细文档](./Abilities/README.md) - 参考现有技能实现

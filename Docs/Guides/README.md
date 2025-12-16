@@ -53,7 +53,7 @@
 
 ## 相关文档
 
-- [技能系统文档](../Ability_System.md) - 技能系统架构和设计
+- [技能系统文档](../Core/Ability_System.md) - 技能系统架构和设计
 - [技能详细文档](../Abilities/README.md) - 现有技能的详细说明
 - [子系统文档](../Systems/README.md) - 各子系统的技术文档
 

@@ -314,9 +314,9 @@ UMyWidgetController* GetMyWidgetController(const FWidgetControllerParams& WCPara
 
 ## 下一步
 
-1. 阅读 [架构文档](./Architecture.md) 了解系统设计
-2. 查看 [API 参考](./API_Reference.md) 了解核心 API
-3. 参考 [系统设计文档](./System_Design.md) 了解各系统细节
+1. 阅读 [架构文档](../Core/Architecture.md) 了解系统设计
+2. 查看 [API 参考](../Core/API_Reference.md) 了解核心 API
+3. 参考 [系统设计文档](../Core/System_Design.md) 了解各系统细节
 4. 开始修改和扩展项目
 
 ---
