@@ -31,6 +31,7 @@
 - [ModMagCalc 系统](./ModMagCalc_System.md) - 修正量计算器系统
 - [Ability Tasks 系统](./Ability_Tasks_System.md) - Ability Tasks 和 Async Tasks
 - [Asset Manager 系统](./Asset_Manager_System.md) - 资源管理器系统
+- [资产管理详细文档](./Asset_Management_Details.md) - 资产管理的完整细节
 
 ## 系统分类
 
