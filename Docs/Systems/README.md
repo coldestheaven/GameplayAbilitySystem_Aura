@@ -32,6 +32,7 @@
 - [Ability Tasks 系统](./Ability_Tasks_System.md) - Ability Tasks 和 Async Tasks
 - [Asset Manager 系统](./Asset_Manager_System.md) - 资源管理器系统
 - [资产管理详细文档](./Asset_Management_Details.md) - 资产管理的完整细节
+- [资产打包文档](./Asset_Packaging.md) - 资产打包配置和策略
 
 ## 系统分类
 
