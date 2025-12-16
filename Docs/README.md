@@ -4,9 +4,12 @@
 
 Aura 是一个基于 Unreal Engine 5.7 的完整 Gameplay Ability System (GAS) 实现项目。该项目展示了如何在 UE5 中构建一个功能完整的 ARPG 风格游戏系统，包括能力系统、属性系统、UI 系统、AI 系统等。
 
+> 📖 **完整项目总览**: 查看 [项目总览](./Project_Overview.md) 了解整个项目的架构和系统概览
+
 ## 文档索引
 
 ### 入门文档
+- [项目总览](./Project_Overview.md) - 项目整体架构和系统概览
 - [快速开始](./Getting_Started/README.md) - 项目设置和开发指南
 
 ### 核心文档
