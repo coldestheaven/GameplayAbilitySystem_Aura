@@ -10,6 +10,8 @@
 - [伤害计算系统](./Damage_Calculation.md) - 伤害计算的详细算法
 - [Debuff 系统](./Debuff_System.md) - Debuff 系统的实现机制
 - [AI 系统](./AI_System.md) - AI 系统的行为树和控制器实现
+- [Actor 系统](./Actor_System.md) - Actor 系统的效果应用和生成系统
+- [交互系统](./Interaction_System.md) - 交互系统的接口和检查点实现
 
 ## 系统分类
 
@@ -24,6 +26,8 @@
 - **UI 系统**: MVVM 架构的 UI 实现
 - **输入系统**: Enhanced Input 集成和技能输入绑定
 - **AI 系统**: 行为树和黑板系统实现的敌人 AI
+- **Actor 系统**: 效果应用、敌人生成、投射物系统
+- **交互系统**: 接口系统、检查点、高亮系统
 
 ## 文档特点
 
