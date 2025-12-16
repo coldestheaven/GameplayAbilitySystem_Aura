@@ -9,6 +9,7 @@
 - [输入系统](./Input_System.md) - 输入系统的集成和配置
 - [伤害计算系统](./Damage_Calculation.md) - 伤害计算的详细算法
 - [Debuff 系统](./Debuff_System.md) - Debuff 系统的实现机制
+- [AI 系统](./AI_System.md) - AI 系统的行为树和控制器实现
 
 ## 系统分类
 
@@ -22,6 +23,7 @@
 
 - **UI 系统**: MVVM 架构的 UI 实现
 - **输入系统**: Enhanced Input 集成和技能输入绑定
+- **AI 系统**: 行为树和黑板系统实现的敌人 AI
 
 ## 文档特点
 
