@@ -38,8 +38,9 @@ Aura 是一个基于 Unreal Engine 5.7 的完整 Gameplay Ability System (GAS) �
 
 ### 实现指南
 - [实现指南](./Guides/README.md) - 技能和功能实现指南
-  - **通用指南**: 如何添加新技能
+  - **通用指南**: 如何添加新技能、新角色、新AI、新资源
   - **技能类型指南**: 近战、远程、图腾
+  - **打包和分发指南**: 如何将包分为两个部分
 
 ### 游戏玩法
 - [Gameplay 框架](./Gameplay/README.md) - Gameplay 框架详细文档
@@ -107,24 +108,43 @@ Source/Aura/
 └── Game/                # 游戏系统
 ```
 
-## 快速链接
+## 快速导航
 
-### 新手入门
-- [快速开始指南](./Getting_Started/QuickStart.md) - 从这里开始
+### 🚀 新手入门路径
+1. [项目总览](./Project_Overview.md) - 了解项目整体架构
+2. [快速开始指南](./Getting_Started/QuickStart.md) - 从这里开始
+3. [架构文档](./Core/Architecture.md) - 理解系统架构
+4. [系统设计](./Core/System_Design.md) - 了解设计思路
 
-### 核心文档
-- [架构文档](./Core/Architecture.md) - 理解系统架构
-- [系统设计](./Core/System_Design.md) - 了解设计思路
+### 🏗️ 核心文档
+- [架构文档](./Core/Architecture.md) - 系统架构和设计模式
+- [系统设计](./Core/System_Design.md) - 各系统详细设计说明
 - [GAS 实现文档](./Core/GAS_Implementation.md) - GAS 完整实现
-- [API 参考](./Core/API_Reference.md) - 开发参考
+- [API 参考](./Core/API_Reference.md) - 核心类和 API 文档
 - [技能系统](./Core/Ability_System.md) - 技能系统详解
 - [架构优化建议](./Architecture_Optimization.md) - 性能优化和架构改进建议
 
-### 开发指南
-- [实现指南](./Guides/README.md) - 如何实现新功能
-- [子系统文档](./Systems/README.md) - 系统实现细节
-- [技能文档](./Abilities/README.md) - 技能详细说明
-- [Gameplay 框架](./Gameplay/README.md) - 游戏玩法框架
+### ⚙️ 系统文档
+- [子系统文档](./Systems/README.md) - 各子系统详细技术文档
+  - **核心系统**: 属性、属性同步、伤害计算、Debuff、数据资产
+  - **GAS 核心组件**: GameplayTags、GameplayEffect、GameplayAbility、GameplayCue、被动技能
+  - **角色和玩家系统**: 角色、玩家状态
+  - **交互系统**: UI、输入、AI、Actor、交互、Checkpoint
+  - **辅助系统**: MVVM、ModMagCalc、Ability Tasks、Asset Manager
+
+### 🎮 技能文档
+- [技能详细文档](./Abilities/README.md) - 每个技能的详细说明
+  - **主动技能**: FireBolt、FireBlast、Electrocute、ArcaneShards、MeleeAttack、SummonAbility
+  - **被动技能**: HaloOfProtection、LifeSiphon、ManaSiphon
+
+### 📖 实现指南
+- [实现指南](./Guides/README.md) - 技能和功能实现指南
+  - **通用指南**: 如何添加新技能、新角色、新AI、新资源
+  - **技能类型指南**: 近战、远程、图腾
+  - **打包和分发指南**: 如何将包分为两个部分
+
+### 🎯 游戏玩法
+- [Gameplay 框架](./Gameplay/Gameplay_Framework.md) - Gameplay 框架详细文档
 
 ## 版权信息
 
