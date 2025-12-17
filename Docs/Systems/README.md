@@ -17,6 +17,7 @@
 - [GameplayEffect 系统](./GameplayEffect_System.md) - GameplayEffect 的详细实现和配置
 - [GameplayAbility 系统](./GameplayAbility_System.md) - GameplayAbility 的详细实现和生命周期
 - [GameplayCue 系统](./GameplayCue_System.md) - GameplayCue 的详细实现和视觉效果处理
+- [被动技能系统](./Passive_Ability_System.md) - 被动技能的详细实现和持续效果系统
 
 ### 角色和玩家系统
 
@@ -56,6 +57,7 @@
 - **GameplayEffect 系统**: 效果系统的实现，用于修改属性、应用 Buff/Debuff
 - **GameplayAbility 系统**: 能力系统的实现，用于实现技能和能力
 - **GameplayCue 系统**: 视觉效果系统的实现，用于处理粒子效果、音效等表现层内容
+- **被动技能系统**: 被动技能的实现，用于持续效果和自动触发的增益
 
 ### 角色和玩家系统
 
