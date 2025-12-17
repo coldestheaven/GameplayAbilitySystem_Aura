@@ -20,6 +20,7 @@ Aura 是一个基于 Unreal Engine 5.7 的完整 Gameplay Ability System (GAS) �
   - [系统设计](./Core/System_Design.md) - 各系统详细设计说明
   - [API 参考](./Core/API_Reference.md) - 核心类和 API 文档
   - [技能系统](./Core/Ability_System.md) - 技能系统详细分析文档
+  - [GAS 实现文档](./Core/GAS_Implementation.md) - Gameplay Ability System 完整实现文档
   - [架构优化建议](./Architecture_Optimization.md) - 性能优化和架构改进建议
 
 ### 系统文档
@@ -113,6 +114,7 @@ Source/Aura/
 ### 核心文档
 - [架构文档](./Core/Architecture.md) - 理解系统架构
 - [系统设计](./Core/System_Design.md) - 了解设计思路
+- [GAS 实现文档](./Core/GAS_Implementation.md) - GAS 完整实现
 - [API 参考](./Core/API_Reference.md) - 开发参考
 - [技能系统](./Core/Ability_System.md) - 技能系统详解
 

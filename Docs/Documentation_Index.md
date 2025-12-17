@@ -15,6 +15,7 @@
 - [系统设计](./Core/System_Design.md) - 各系统详细设计说明
 - [API 参考](./Core/API_Reference.md) - 核心类和 API 文档
 - [技能系统](./Core/Ability_System.md) - 技能系统详细分析文档
+- [GAS 实现文档](./Core/GAS_Implementation.md) - Gameplay Ability System 完整实现文档
 
 ### ⚙️ 系统文档
 
@@ -23,6 +24,13 @@
 - [伤害计算系统](./Systems/Damage_Calculation.md) - 伤害计算的详细算法
 - [Debuff 系统](./Systems/Debuff_System.md) - Debuff 系统的实现机制
 - [数据资产系统](./Systems/Data_Assets_System.md) - 数据资产系统的配置和使用
+
+#### GAS 核心组件
+- [GameplayTags 系统](./Systems/GameplayTags_System.md) - GameplayTags 的详细实现和使用
+- [GameplayEffect 系统](./Systems/GameplayEffect_System.md) - GameplayEffect 的详细实现和配置
+- [GameplayAbility 系统](./Systems/GameplayAbility_System.md) - GameplayAbility 的详细实现和生命周期
+- [GameplayCue 系统](./Systems/GameplayCue_System.md) - GameplayCue 的详细实现和视觉效果处理
+- [被动技能系统](./Systems/Passive_Ability_System.md) - 被动技能的详细实现和持续效果系统
 
 #### 角色和玩家系统
 - [角色系统](./Systems/Character_System.md) - 角色基类和角色实现
@@ -41,6 +49,8 @@
 - [ModMagCalc 系统](./Systems/ModMagCalc_System.md) - 修正量计算器系统
 - [Ability Tasks 系统](./Systems/Ability_Tasks_System.md) - Ability Tasks 和 Async Tasks
 - [Asset Manager 系统](./Systems/Asset_Manager_System.md) - 资源管理器系统
+- [资产管理详细文档](./Systems/Asset_Management_Details.md) - 资产管理的完整细节
+- [资产打包文档](./Systems/Asset_Packaging.md) - 资产打包配置和策略
 
 ### 🎮 技能文档
 
@@ -61,11 +71,17 @@
 
 #### 通用指南
 - [如何添加新技能](./Guides/How_To_Add_New_Ability.md) - 添加新技能的完整步骤指南
+- [如何添加新角色](./Guides/How_To_Add_New_Character.md) - 添加新角色的完整指南
+- [如何添加新AI](./Guides/How_To_Add_New_AI.md) - 添加新AI系统的完整指南
+- [如何添加新资源](./Guides/How_To_Add_New_Resource.md) - 添加新资源（如 Energy、Stamina）的完整指南
 
 #### 技能类型指南
 - [近战技能实现指南](./Guides/How_To_Implement_Melee_Ability.md) - 近战攻击技能实现指南
 - [远程攻击技能实现指南](./Guides/How_To_Implement_Ranged_Ability.md) - 远程投射物技能实现指南
 - [图腾技能实现指南](./Guides/How_To_Implement_Totem_Ability.md) - 图腾召唤技能实现指南
+
+#### 打包和分发指南
+- [如何将包分为两个部分](./Guides/How_To_Split_Package_Into_Chunks.md) - 减少首包大小的完整指南
 
 ### 🎯 游戏玩法
 
@@ -104,12 +120,12 @@
 
 ### 文档数量
 
-- **核心文档**: 4 个
-- **系统文档**: 16 个
+- **核心文档**: 5 个（包括 GAS 实现文档）
+- **系统文档**: 21 个（包括 GAS 核心组件）
 - **技能文档**: 9 个
-- **实现指南**: 4 个
+- **实现指南**: 8 个（包括角色、AI、资源、打包指南）
 - **游戏玩法文档**: 1 个
-- **总文档数**: 34+ 个
+- **总文档数**: 44+ 个
 
 ### 文档覆盖
 
