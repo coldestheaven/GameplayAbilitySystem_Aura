@@ -40,14 +40,32 @@
   - 被动技能系统
   - 网络复制和最佳实践
 
+- [GAS 实现文档](./GAS_Implementation.md) - Gameplay Ability System 完整实现文档
+  - GAS 架构和核心组件
+  - GameplayTags、AttributeSet、GameplayEffect 实现
+  - GameplayAbility 和 GameplayCue 实现
+  - 伤害计算系统和 Debuff 系统
+  - 被动技能系统
+  - 网络复制和最佳实践
+
 ## 阅读顺序建议
 
-1. **新手**: 先阅读 [快速开始指南](../Getting_Started/QuickStart.md)
-2. **架构理解**: 阅读 [架构文档](./Architecture.md)
-3. **系统设计**: 阅读 [系统设计](./System_Design.md)
-4. **GAS 实现**: 阅读 [GAS 实现文档](./GAS_Implementation.md) - 了解 GAS 完整实现
-5. **开发参考**: 使用 [API 参考](./API_Reference.md)
-6. **技能开发**: 参考 [技能系统](./Ability_System.md)
+### 新手路径
+1. **快速开始**: [快速开始指南](../Getting_Started/QuickStart.md)
+2. **项目总览**: [项目总览](../Project_Overview.md)
+3. **架构理解**: [架构文档](./Architecture.md)
+4. **系统设计**: [系统设计](./System_Design.md)
+
+### 开发者路径
+1. **GAS 实现**: [GAS 实现文档](./GAS_Implementation.md) - 了解 GAS 完整实现
+2. **API 参考**: [API 参考](./API_Reference.md) - 开发参考
+3. **技能系统**: [技能系统](./Ability_System.md) - 技能系统详解
+4. **子系统文档**: [子系统文档](../Systems/README.md) - 具体系统实现
+
+### 技能开发者路径
+1. **技能系统**: [技能系统](./Ability_System.md) - 系统架构
+2. **实现指南**: [如何添加新技能](../Guides/How_To_Add_New_Ability.md) - 通用指南
+3. **技能文档**: [技能详细文档](../Abilities/README.md) - 现有技能参考
 
 ## 相关文档
 

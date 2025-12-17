@@ -21,6 +21,7 @@
 
 #### 核心系统
 - [属性系统](./Systems/Attribute_System.md) - 属性系统的详细实现和设计
+- [属性同步系统](./Systems/Attribute_Synchronization.md) - 属性网络同步机制和复制策略
 - [伤害计算系统](./Systems/Damage_Calculation.md) - 伤害计算的详细算法
 - [Debuff 系统](./Systems/Debuff_System.md) - Debuff 系统的实现机制
 - [数据资产系统](./Systems/Data_Assets_System.md) - 数据资产系统的配置和使用
@@ -121,11 +122,11 @@
 ### 文档数量
 
 - **核心文档**: 5 个（包括 GAS 实现文档）
-- **系统文档**: 21 个（包括 GAS 核心组件）
+- **系统文档**: 22 个（包括 GAS 核心组件和属性同步）
 - **技能文档**: 9 个
 - **实现指南**: 8 个（包括角色、AI、资源、打包指南）
 - **游戏玩法文档**: 1 个
-- **总文档数**: 44+ 个
+- **总文档数**: 45+ 个
 
 ### 文档覆盖
 
