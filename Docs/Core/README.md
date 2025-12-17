@@ -32,13 +32,22 @@
   - GameplayEffect 配置
   - 技能描述系统
 
+- [GAS 实现文档](./GAS_Implementation.md) - Gameplay Ability System 完整实现文档
+  - GAS 架构和核心组件
+  - GameplayTags、AttributeSet、GameplayEffect 实现
+  - GameplayAbility 和 GameplayCue 实现
+  - 伤害计算系统和 Debuff 系统
+  - 被动技能系统
+  - 网络复制和最佳实践
+
 ## 阅读顺序建议
 
 1. **新手**: 先阅读 [快速开始指南](../Getting_Started/QuickStart.md)
 2. **架构理解**: 阅读 [架构文档](./Architecture.md)
 3. **系统设计**: 阅读 [系统设计](./System_Design.md)
-4. **开发参考**: 使用 [API 参考](./API_Reference.md)
-5. **技能开发**: 参考 [技能系统](./Ability_System.md)
+4. **GAS 实现**: 阅读 [GAS 实现文档](./GAS_Implementation.md) - 了解 GAS 完整实现
+5. **开发参考**: 使用 [API 参考](./API_Reference.md)
+6. **技能开发**: 参考 [技能系统](./Ability_System.md)
 
 ## 相关文档
 
