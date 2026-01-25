@@ -1,5 +1,5 @@
-
 #include "AuraAbilityTypes.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
 bool FAuraGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
 {
@@ -10,7 +10,7 @@ bool FAuraGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bo
 		{
 			RepBits |= 1 << 0;
 		}
-		if (bReplicateEffectCauser && EffectCauser.IsValid() )
+		if (bReplicateEffectCauser && EffectCauser.IsValid())
 		{
 			RepBits |= 1 << 1;
 		}
@@ -34,11 +34,11 @@ bool FAuraGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bo
 		{
 			RepBits |= 1 << 6;
 		}
-		if (bIsBlockedHit)
+		if (bIsCriticalHit)
 		{
 			RepBits |= 1 << 7;
 		}
-		if (bIsCriticalHit)
+		if (bIsBlockedHit)
 		{
 			RepBits |= 1 << 8;
 		}
@@ -73,24 +73,22 @@ bool FAuraGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bo
 		if (bIsRadialDamage)
 		{
 			RepBits |= 1 << 16;
-
-			if (RadialDamageInnerRadius > 0.f)
-			{
-				RepBits |= 1 << 17;
-			}
-			if (RadialDamageOuterRadius > 0.f)
-			{
-				RepBits |= 1 << 18;
-			}
-			if (!RadialDamageOrigin.IsZero())
-			{
-				RepBits |= 1 << 19;
-			}
 		}
-		
+		if (RadialDamageInnerRadius > 0.f)
+		{
+			RepBits |= 1 << 17;
+		}
+		if (RadialDamageOuterRadius > 0.f)
+		{
+			RepBits |= 1 << 18;
+		}
+		if (!RadialDamageOrigin.IsZero())
+		{
+			RepBits |= 1 << 19;
+		}
 	}
 
-	Ar.SerializeBits(&RepBits, 19);
+	Ar.SerializeBits(&RepBits, 20);
 
 	if (RepBits & (1 << 0))
 	{
@@ -134,11 +132,11 @@ bool FAuraGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bo
 	}
 	if (RepBits & (1 << 7))
 	{
-		Ar << bIsBlockedHit;
+		Ar << bIsCriticalHit;
 	}
 	if (RepBits & (1 << 8))
 	{
-		Ar << bIsCriticalHit;
+		Ar << bIsBlockedHit;
 	}
 	if (RepBits & (1 << 9))
 	{
@@ -169,36 +167,34 @@ bool FAuraGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bo
 	}
 	if (RepBits & (1 << 14))
 	{
-		DeathImpulse.NetSerialize(Ar, Map, bOutSuccess);
+		Ar << DeathImpulse;
 	}
 	if (RepBits & (1 << 15))
 	{
-		KnockbackForce.NetSerialize(Ar, Map, bOutSuccess);
+		Ar << KnockbackForce;
 	}
 	if (RepBits & (1 << 16))
 	{
 		Ar << bIsRadialDamage;
-		
-		if (RepBits & (1 << 17))
-		{
-			Ar << RadialDamageInnerRadius;
-		}
-		if (RepBits & (1 << 18))
-		{
-			Ar << RadialDamageOuterRadius;
-		}
-		if (RepBits & (1 << 19))
-		{
-			RadialDamageOrigin.NetSerialize(Ar, Map, bOutSuccess);
-		}
 	}
-	
+	if (RepBits & (1 << 17))
+	{
+		Ar << RadialDamageInnerRadius;
+	}
+	if (RepBits & (1 << 18))
+	{
+		Ar << RadialDamageOuterRadius;
+	}
+	if (RepBits & (1 << 19))
+	{
+		Ar << RadialDamageOrigin;
+	}
 
 	if (Ar.IsLoading())
 	{
 		AddInstigator(Instigator.Get(), EffectCauser.Get()); // Just to initialize InstigatorAbilitySystemComponent
-	}	
-	
+	}
+
 	bOutSuccess = true;
 	return true;
 }

@@ -4,7 +4,7 @@
 #include "Actor/AuraFireBall.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
-#include "AuraGameplayTags.h"
+#include "GameplayTags/AuraGameplayTags.h"
 #include "GameplayCueManager.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
 #include "Components/AudioComponent.h"

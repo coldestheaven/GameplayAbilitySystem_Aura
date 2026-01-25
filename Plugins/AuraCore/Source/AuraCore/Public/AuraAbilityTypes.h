@@ -75,7 +75,7 @@ struct FDamageEffectParams
 };
 
 USTRUCT(BlueprintType)
-struct FAuraGameplayEffectContext : public FGameplayEffectContext
+struct AURACORE_API FAuraGameplayEffectContext : public FGameplayEffectContext
 {
 	GENERATED_BODY()
 

@@ -9,7 +9,8 @@
 #include "Components/WidgetComponent.h"
 #include "Aura/Aura.h"
 #include "UI/Widget/AuraUserWidget.h"
-#include "AuraGameplayTags.h"
+#include "UI/WidgetController/EnemyHealthBarWidgetController.h"
+#include "GameplayTags/AuraGameplayTags.h"
 #include "AI/AuraAIController.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -103,14 +104,12 @@ void AAuraEnemy::BeginPlay()
 		UAuraAbilitySystemLibrary::GiveStartupAbilities(this, AbilitySystemComponent, CharacterClass);	
 	}
 
-	
-	if (UAuraUserWidget* AuraUserWidget = Cast<UAuraUserWidget>(HealthBar->GetUserWidgetObject()))
-	{
-		AuraUserWidget->SetWidgetController(this);
-	}
+	// 初始化头顶 HUD Widget
+	InitializeHealthBarWidget();
 	
 	if (const UAuraAttributeSet* AuraAS = Cast<UAuraAttributeSet>(AttributeSet))
 	{
+		// 绑定属性变化委托（用于旧的委托系统兼容）
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AuraAS->GetHealthAttribute()).AddLambda(
 			[this](const FOnAttributeChangeData& Data)
 			{
@@ -129,10 +128,10 @@ void AAuraEnemy::BeginPlay()
 			&AAuraEnemy::HitReactTagChanged
 		);
 
+		// 广播初始值
 		OnHealthChanged.Broadcast(AuraAS->GetHealth());
 		OnMaxHealthChanged.Broadcast(AuraAS->GetMaxHealth());
 	}
-	
 }
 
 void AAuraEnemy::HitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
@@ -172,4 +171,40 @@ void AAuraEnemy::StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
 	{
 		AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("Stunned"), bIsStunned);
 	}
+}
+
+void AAuraEnemy::InitializeHealthBarWidget()
+{
+	if (!IsValid(HealthBar)) return;
+
+	// 获取 Widget 对象
+	UAuraUserWidget* AuraUserWidget = Cast<UAuraUserWidget>(HealthBar->GetUserWidgetObject());
+	if (!IsValid(AuraUserWidget)) return;
+
+	// 创建 Widget Controller
+	if (HealthBarWidgetControllerClass)
+	{
+		HealthBarWidgetController = NewObject<UEnemyHealthBarWidgetController>(this, HealthBarWidgetControllerClass);
+	}
+	else
+	{
+		HealthBarWidgetController = NewObject<UEnemyHealthBarWidgetController>(this);
+	}
+
+	// 设置 Widget Controller 参数
+	FWidgetControllerParams WCParams;
+	WCParams.AttributeSet = AttributeSet;
+	WCParams.AbilitySystemComponent = AbilitySystemComponent;
+	WCParams.PlayerState = nullptr;
+	WCParams.PlayerController = nullptr;
+
+	HealthBarWidgetController->SetWidgetControllerParams(WCParams);
+	HealthBarWidgetController->SetEnemy(this);
+
+	// 将 Controller 设置到 Widget
+	AuraUserWidget->SetWidgetController(HealthBarWidgetController);
+
+	// 绑定回调并广播初始值
+	HealthBarWidgetController->BindCallbacksToDependencies();
+	HealthBarWidgetController->BroadcastInitialValues();
 }

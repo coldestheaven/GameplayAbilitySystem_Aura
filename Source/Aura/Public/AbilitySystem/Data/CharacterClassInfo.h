@@ -5,19 +5,12 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "ScalableFloat.h"
+#include "Interaction/CombatInterface.h"
 #include "CharacterClassInfo.generated.h"
 
 
 class UGameplayEffect;
 class UGameplayAbility;
-
-UENUM(BlueprintType)
-enum class ECharacterClass : uint8
-{
-	Elementalist,
-	Warrior,
-	Ranger
-};
 
 USTRUCT(BlueprintType)
 struct FCharacterClassDefaultInfo

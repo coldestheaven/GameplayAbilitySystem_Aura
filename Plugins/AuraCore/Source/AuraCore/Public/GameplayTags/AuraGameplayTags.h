@@ -11,7 +11,7 @@
  * Singleton containing native Gameplay Tags
  */
 
-struct FAuraGameplayTags
+struct AURACORE_API FAuraGameplayTags
 {
 public:
     static const FAuraGameplayTags& Get() { return GameplayTags;}

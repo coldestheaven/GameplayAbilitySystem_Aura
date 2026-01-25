@@ -5,12 +5,20 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "GameplayTagContainer.h"
-#include "AbilitySystem/Data/CharacterClassInfo.h"
 #include "CombatInterface.generated.h"
 
 class UAbilitySystemComponent;
 class UNiagaraSystem;
 class UAnimMontage;
+
+// 角色职业枚举 - 从CharacterClassInfo.h迁移过来
+UENUM(BlueprintType)
+enum class ECharacterClass : uint8
+{
+	Elementalist,
+	Warrior,
+	Ranger
+};
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnASCRegistered, UAbilitySystemComponent*)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathSignature, AActor*, DeadActor);
@@ -45,7 +53,7 @@ class UCombatInterface : public UInterface
 /**
  * 
  */
-class AURA_API ICombatInterface
+class AURACORE_API ICombatInterface
 {
 	GENERATED_BODY()
 

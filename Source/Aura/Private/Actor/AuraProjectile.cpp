@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
+#include "ObjectPool/ObjectPoolSubsystem.h"
 #include "Aura/Aura.h"
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
@@ -36,11 +37,13 @@ AAuraProjectile::AAuraProjectile()
 void AAuraProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	SetLifeSpan(LifeSpan);
 	SetReplicateMovement(true);
 	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AAuraProjectile::OnSphereOverlap);
 
-	LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, GetRootComponent());
+	if (LoopingSound)
+	{
+		LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, GetRootComponent());
+	}
 }
 
 void AAuraProjectile::OnHit()
@@ -89,11 +92,19 @@ void AAuraProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, 
 				DamageEffectParams.KnockbackForce = KnockbackForce;
 			}
 			
-			DamageEffectParams.TargetAbilitySystemComponent = TargetASC;
+		DamageEffectParams.TargetAbilitySystemComponent = TargetASC;
 			UAuraAbilitySystemLibrary::ApplyDamageEffect(DamageEffectParams);
 		}
 		
-		Destroy();
+		// 归还到对象池而不是销毁
+		if (UObjectPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubsystem>())
+		{
+			PoolSubsystem->ReleaseActor(this);
+		}
+		else
+		{
+			Destroy();
+		}
 	}
 	else bHit = true;
 }
@@ -106,4 +117,72 @@ bool AAuraProjectile::IsValidOverlap(AActor* OtherActor)
 	if (!UAuraAbilitySystemLibrary::IsNotFriend(SourceAvatarActor, OtherActor)) return false;
 
 	return true;
+}
+
+// IPoolableObject接口实现
+
+void AAuraProjectile::OnAcquiredFromPool_Implementation()
+{
+	// 重置投射物状态
+	bHit = false;
+	
+	// 激活投射物移动组件
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->Activate();
+		ProjectileMovement->Velocity = FVector::ZeroVector;
+	}
+	
+	// 重新设置生命周期
+	SetLifeSpan(LifeSpan);
+	
+	// 重新生成循环音效
+	if (LoopingSound && !LoopingSoundComponent)
+	{
+		LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, GetRootComponent());
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Projectile %s acquired from pool"), *GetName());
+}
+
+void AAuraProjectile::OnReturnedToPool_Implementation()
+{
+	// 清理投射物状态
+	bHit = false;
+	
+	// 停用投射物移动组件
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->Deactivate();
+		ProjectileMovement->Velocity = FVector::ZeroVector;
+	}
+	
+	// 清理音效组件
+	if (LoopingSoundComponent)
+	{
+		LoopingSoundComponent->Stop();
+		LoopingSoundComponent->DestroyComponent();
+		LoopingSoundComponent = nullptr;
+	}
+	
+	// 清除生命周期定时器
+	SetLifeSpan(0.f);
+	
+	// 重置寻的目标
+	if (HomingTargetSceneComponent)
+	{
+		HomingTargetSceneComponent->DestroyComponent();
+		HomingTargetSceneComponent = nullptr;
+	}
+	
+	// 重置伤害参数
+	DamageEffectParams = FDamageEffectParams();
+	
+	UE_LOG(LogTemp, Log, TEXT("Projectile %s returned to pool"), *GetName());
+}
+
+bool AAuraProjectile::CanReturnToPool_Implementation() const
+{
+	// 检查是否可以安全归还到池中
+	return IsValid(this) && GetWorld() != nullptr;
 }

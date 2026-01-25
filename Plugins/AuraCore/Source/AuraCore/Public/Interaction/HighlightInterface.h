@@ -16,7 +16,7 @@ class UHighlightInterface : public UInterface
 /**
  * 
  */
-class AURA_API IHighlightInterface
+class AURACORE_API IHighlightInterface
 {
 	GENERATED_BODY()
 

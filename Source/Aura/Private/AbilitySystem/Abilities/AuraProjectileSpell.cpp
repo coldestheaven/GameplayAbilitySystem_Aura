@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Actor/AuraProjectile.h"
+#include "ObjectPool/ObjectPoolSubsystem.h"
 #include "Interaction/CombatInterface.h"
 
 void UAuraProjectileSpell::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -35,15 +36,35 @@ void UAuraProjectileSpell::SpawnProjectile(const FVector& ProjectileTargetLocati
 	FTransform SpawnTransform;
 	SpawnTransform.SetLocation(SocketLocation);
 	SpawnTransform.SetRotation(Rotation.Quaternion());
-		
-	AAuraProjectile* Projectile = GetWorld()->SpawnActorDeferred<AAuraProjectile>(
-		ProjectileClass,
-		SpawnTransform,
-		GetOwningActorFromActorInfo(),
-		Cast<APawn>(GetOwningActorFromActorInfo()),
-		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	
-	Projectile->DamageEffectParams = MakeDamageEffectParamsFromClassDefaults();
+	// 从对象池获取投射物
+	UObjectPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubsystem>();
+	AAuraProjectile* Projectile = nullptr;
+	
+	if (PoolSubsystem)
+	{
+		// 使用对象池
+		Projectile = Cast<AAuraProjectile>(PoolSubsystem->AcquireActor(ProjectileClass, SpawnTransform));
+	}
+	else
+	{
+		// 降级方案：直接生成
+		Projectile = GetWorld()->SpawnActorDeferred<AAuraProjectile>(
+			ProjectileClass,
+			SpawnTransform,
+			GetOwningActorFromActorInfo(),
+			Cast<APawn>(GetOwningActorFromActorInfo()),
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	}
+	
+	if (Projectile)
+	{
+		Projectile->DamageEffectParams = MakeDamageEffectParamsFromClassDefaults();
 		
-	Projectile->FinishSpawning(SpawnTransform);
+		if (!PoolSubsystem)
+		{
+			// 只有在直接生成时才需要调用FinishSpawning
+			Projectile->FinishSpawning(SpawnTransform);
+		}
+	}
 }

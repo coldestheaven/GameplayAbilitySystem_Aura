@@ -4,7 +4,7 @@
 #include "AuraAssetManager.h"
 
 #include "AbilitySystemGlobals.h"
-#include "AuraGameplayTags.h"
+#include "GameplayTags/AuraGameplayTags.h"
 
 UAuraAssetManager& UAuraAssetManager::Get()
 {

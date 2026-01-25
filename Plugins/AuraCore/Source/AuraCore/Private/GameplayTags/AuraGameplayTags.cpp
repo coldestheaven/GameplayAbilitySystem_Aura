@@ -1,7 +1,7 @@
 // Copyright Druid Mechanics
 
 
-#include "AuraGameplayTags.h"
+#include "GameplayTags/AuraGameplayTags.h"
 #include "GameplayTagsManager.h"
 
 FAuraGameplayTags FAuraGameplayTags::GameplayTags;

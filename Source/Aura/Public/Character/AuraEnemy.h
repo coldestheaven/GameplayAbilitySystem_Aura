@@ -12,6 +12,7 @@
 class UWidgetComponent;
 class UBehaviorTree;
 class AAuraAIController;
+class UEnemyHealthBarWidgetController;
 /**
  * 
  */
@@ -65,6 +66,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UWidgetComponent> HealthBar;
+
+	UPROPERTY()
+	TObjectPtr<UEnemyHealthBarWidgetController> HealthBarWidgetController;
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UEnemyHealthBarWidgetController> HealthBarWidgetControllerClass;
+
+	// 初始化头顶 HUD
+	void InitializeHealthBarWidget();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Info")
+	FText EnemyName;
 
 	UPROPERTY(EditAnywhere, Category = "AI")
 	TObjectPtr<UBehaviorTree> BehaviorTree;

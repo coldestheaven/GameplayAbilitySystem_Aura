@@ -16,7 +16,7 @@ class UEnemyInterface : public UInterface
 /**
  * 
  */
-class AURA_API IEnemyInterface
+class AURACORE_API IEnemyInterface
 {
 	GENERATED_BODY()
 

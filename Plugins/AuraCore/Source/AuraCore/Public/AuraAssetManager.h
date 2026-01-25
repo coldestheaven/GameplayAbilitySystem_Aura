@@ -10,7 +10,7 @@
  * 
  */
 UCLASS()
-class AURA_API UAuraAssetManager : public UAssetManager
+class AURACORE_API UAuraAssetManager : public UAssetManager
 {
 	GENERATED_BODY()
 public:

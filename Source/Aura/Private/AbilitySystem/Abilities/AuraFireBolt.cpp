@@ -5,6 +5,7 @@
 
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
 #include "Actor/AuraProjectile.h"
+#include "ObjectPool/ObjectPoolSubsystem.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
 FString UAuraFireBolt::GetDescription(int32 Level)
@@ -115,19 +116,35 @@ void UAuraFireBolt::SpawnProjectiles(const FVector& ProjectileTargetLocation, co
 	const int32 EffectiveNumProjectiles = FMath::Min(NumProjectiles, GetAbilityLevel());
 	TArray<FRotator> Rotations = UAuraAbilitySystemLibrary::EvenlySpacedRotators(Forward, FVector::UpVector, ProjectileSpread, EffectiveNumProjectiles);
 
+	// 获取对象池子系统
+	UObjectPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubsystem>();
+
 	for (const FRotator& Rot : Rotations)
 	{
 		FTransform SpawnTransform;
 		SpawnTransform.SetLocation(SocketLocation);
 		SpawnTransform.SetRotation(Rot.Quaternion());
 
-		AAuraProjectile* Projectile = GetWorld()->SpawnActorDeferred<AAuraProjectile>(
-		ProjectileClass,
-		SpawnTransform,
-		GetOwningActorFromActorInfo(),
-		Cast<APawn>(GetOwningActorFromActorInfo()),
-		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		AAuraProjectile* Projectile = nullptr;
+		
+		if (PoolSubsystem)
+		{
+			// 使用对象池
+			Projectile = Cast<AAuraProjectile>(PoolSubsystem->AcquireActor(ProjectileClass, SpawnTransform));
+		}
+		else
+		{
+			// 降级方案：直接生成
+			Projectile = GetWorld()->SpawnActorDeferred<AAuraProjectile>(
+			ProjectileClass,
+			SpawnTransform,
+			GetOwningActorFromActorInfo(),
+			Cast<APawn>(GetOwningActorFromActorInfo()),
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		}
 	
+		if (!Projectile) continue;
+		
 		Projectile->DamageEffectParams = MakeDamageEffectParamsFromClassDefaults();
 
 		if (HomingTarget && HomingTarget->Implements<UCombatInterface>())
@@ -143,6 +160,10 @@ void UAuraFireBolt::SpawnProjectiles(const FVector& ProjectileTargetLocation, co
 		Projectile->ProjectileMovement->HomingAccelerationMagnitude = FMath::FRandRange(HomingAccelerationMin, HomingAccelerationMax);
 		Projectile->ProjectileMovement->bIsHomingProjectile = bLaunchHomingProjectiles;
 		
-		Projectile->FinishSpawning(SpawnTransform);
+		if (!PoolSubsystem)
+		{
+			// 只有在直接生成时才需要调用FinishSpawning
+			Projectile->FinishSpawning(SpawnTransform);
+		}
 	}
 }

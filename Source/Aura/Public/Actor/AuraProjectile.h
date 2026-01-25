@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AuraAbilityTypes.h"
+#include "ObjectPool/PoolableObject.h"
 #include "GameFramework/Actor.h"
 #include "AuraProjectile.generated.h"
 
@@ -12,7 +13,7 @@ class USphereComponent;
 class UProjectileMovementComponent;
 
 UCLASS()
-class AURA_API AAuraProjectile : public AActor
+class AURA_API AAuraProjectile : public AActor, public IPoolableObject
 {
 	GENERATED_BODY()
 	
@@ -27,6 +28,12 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> HomingTargetSceneComponent;
+
+public:
+	// IPoolableObject接口实现
+	virtual void OnAcquiredFromPool_Implementation() override;
+	virtual void OnReturnedToPool_Implementation() override;
+	virtual bool CanReturnToPool_Implementation() const override;
 
 protected:
 	virtual void BeginPlay() override;

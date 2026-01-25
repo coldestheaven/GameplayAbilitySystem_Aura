@@ -16,7 +16,7 @@ class UPlayerInterface : public UInterface
 /**
  * 
  */
-class AURA_API IPlayerInterface
+class AURACORE_API IPlayerInterface
 {
 	GENERATED_BODY()
 
