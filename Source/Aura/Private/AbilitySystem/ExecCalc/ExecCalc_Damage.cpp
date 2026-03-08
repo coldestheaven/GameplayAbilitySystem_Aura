@@ -49,15 +49,33 @@ static const AuraDamageStatics& DamageStatics()
 	return DStatics;
 }
 
+/**
+ * 构造函数：注册需要捕获的属性
+ * 
+ * 实现流程：
+ * 1. 注册目标属性：护甲、格挡率、暴击抗性、各种抗性
+ * 2. 注册源属性：护甲穿透、暴击率、暴击伤害
+ * 
+ * 使用场景：
+ * - 伤害计算执行器创建时自动调用
+ * 
+ * 注意：
+ * - 这些属性会在 Execute_Implementation 中被捕获并用于伤害计算
+ * - 目标属性用于防御计算，源属性用于攻击计算
+ */
 UExecCalc_Damage::UExecCalc_Damage()
 {
+	// 目标属性（防御相关）
 	RelevantAttributesToCapture.Add(DamageStatics().ArmorDef);
 	RelevantAttributesToCapture.Add(DamageStatics().BlockChanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().CriticalHitResistanceDef);
+	
+	// 源属性（攻击相关）
 	RelevantAttributesToCapture.Add(DamageStatics().ArmorPenetrationDef);
 	RelevantAttributesToCapture.Add(DamageStatics().CriticalHitChanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().CriticalHitResistanceDef);
 	RelevantAttributesToCapture.Add(DamageStatics().CriticalHitDamageDef);
 
+	// 目标抗性属性（元素抗性）
 	RelevantAttributesToCapture.Add(DamageStatics().FireResistanceDef);
 	RelevantAttributesToCapture.Add(DamageStatics().LightningResistanceDef);
 	RelevantAttributesToCapture.Add(DamageStatics().ArcaneResistanceDef);
@@ -104,9 +122,44 @@ void UExecCalc_Damage::DetermineDebuff(const FGameplayEffectCustomExecutionParam
 	}
 }
 
+/**
+ * 伤害计算执行函数（GAS 自定义执行的核心）
+ * 
+ * 实现流程：
+ * 1. 构建标签到属性捕获定义的映射表
+ * 2. 获取源和目标 ASC、Avatar Actor、等级
+ * 3. 获取 EffectSpec 和 ContextHandle
+ * 4. 设置评估参数（源/目标标签）
+ * 5. 判定 Debuff（DetermineDebuff）
+ * 6. 计算基础伤害（应用抗性减免）
+ * 7. 判定格挡（BlockChance）
+ * 8. 计算护甲减免（考虑护甲穿透）
+ * 9. 判定暴击（CriticalHit）
+ * 10. 应用最终伤害到 Health 属性
+ * 
+ * @param ExecutionParams 执行参数（包含源/目标 ASC、属性捕获等）
+ * @param OutExecutionOutput 输出参数（最终伤害值写入此处）
+ * 
+ * 伤害计算公式：
+ * 1. 基础伤害 = SetByCaller 伤害值 * (100 - 抗性) / 100
+ * 2. 格挡后伤害 = 基础伤害 / 2（如果格挡成功）
+ * 3. 有效护甲 = 目标护甲 * (100 - 护甲穿透 * 系数) / 100
+ * 4. 护甲减免后伤害 = 伤害 * (100 - 有效护甲 * 系数) / 100
+ * 5. 最终伤害 = 护甲减免后伤害 * (1 + 暴击伤害倍率)（如果暴击）
+ * 
+ * 使用场景：
+ * - 所有伤害 GameplayEffect 都会调用此执行器
+ * - 在服务端执行，结果复制到客户端
+ * 
+ * 注意：
+ * - 此函数在服务端执行，确保伤害计算的权威性
+ * - 所有属性捕获都在此函数中进行
+ * - 伤害值最终通过 OutExecutionOutput 应用到 Health 属性
+ */
 void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams,
                                               FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const
 {
+	// 构建标签到属性捕获定义的映射表（用于通过标签查找属性）
 	TMap<FGameplayTag, FGameplayEffectAttributeCaptureDefinition> TagsToCaptureDefs;
 	const FAuraGameplayTags& Tags = FAuraGameplayTags::Get();
 		
@@ -122,13 +175,14 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	TagsToCaptureDefs.Add(Tags.Attributes_Resistance_Lightning, DamageStatics().LightningResistanceDef);
 	TagsToCaptureDefs.Add(Tags.Attributes_Resistance_Physical, DamageStatics().PhysicalResistanceDef);
 	
-	
+	// 获取源和目标 ASC 和 Avatar Actor
 	const UAbilitySystemComponent* SourceASC = ExecutionParams.GetSourceAbilitySystemComponent();
 	const UAbilitySystemComponent* TargetASC = ExecutionParams.GetTargetAbilitySystemComponent();
 
 	AActor* SourceAvatar = SourceASC ? SourceASC->GetAvatarActor() : nullptr;
 	AActor* TargetAvatar = TargetASC ? TargetASC->GetAvatarActor() : nullptr;
 
+	// 获取源和目标等级（用于曲线计算）
 	int32 SourcePlayerLevel = 1;
 	if (SourceAvatar->Implements<UCombatInterface>())
 	{
@@ -143,16 +197,17 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
 	FGameplayEffectContextHandle EffectContextHandle = Spec.GetContext();
 
+	// 获取源和目标标签（用于属性捕获评估）
 	const FGameplayTagContainer* SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	const FGameplayTagContainer* TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
 	FAggregatorEvaluateParameters EvaluationParameters;
 	EvaluationParameters.SourceTags = SourceTags;
 	EvaluationParameters.TargetTags = TargetTags;
 
-	// Debuff
+	// 步骤 1：判定 Debuff（负面效果）
 	DetermineDebuff(ExecutionParams, Spec, EvaluationParameters, TagsToCaptureDefs);
 
-	// Get Damage Set by Caller Magnitude
+	// 步骤 2：计算基础伤害（应用抗性减免）
 	float Damage = 0.f;
 	for (const TTuple<FGameplayTag, FGameplayTag>& Pair  : FAuraGameplayTags::Get().DamageTypesToResistances)
 	{
@@ -162,27 +217,26 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 		checkf(TagsToCaptureDefs.Contains(ResistanceTag), TEXT("TagsToCaptureDefs doesn't contain Tag: [%s] in ExecCalc_Damage"), *ResistanceTag.ToString());
 		const FGameplayEffectAttributeCaptureDefinition CaptureDef = TagsToCaptureDefs[ResistanceTag];
 
+		// 获取该类型伤害的基础值（从 SetByCaller 获取）
 		float DamageTypeValue = Spec.GetSetByCallerMagnitude(Pair.Key, false);
 		if (DamageTypeValue <= 0.f)
 		{
 			continue;
 		}
 		
+		// 捕获目标对应抗性值
 		float Resistance = 0.f;
 		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(CaptureDef, EvaluationParameters, Resistance);
 		Resistance = FMath::Clamp(Resistance, 0.f, 100.f);
 
+		// 应用抗性减免：伤害 = 基础伤害 * (100 - 抗性) / 100
 		DamageTypeValue *= ( 100.f - Resistance ) / 100.f;
 
+		// 如果是范围伤害，使用引擎的 ApplyRadialDamageWithFalloff
+		// 注意：范围伤害会通过 TakeDamage 回调获取实际伤害值
 		if (UAuraAbilitySystemLibrary::IsRadialDamage(EffectContextHandle))
 		{
-			// 1. override TakeDamage in AuraCharacterBase. *
-			// 2. create delegate OnDamageDelegate, broadcast damage received in TakeDamage *
-			// 3. Bind lambda to OnDamageDelegate on the Victim here. *
-			// 4. Call UGameplayStatics::ApplyRadialDamageWithFalloff to cause damage (this will result in TakeDamage being called
-			//		on the Victim, which will then broadcast OnDamageDelegate)
-			// 5. In Lambda, set DamageTypeValue to the damage received from the broadcast *
-
+			// 绑定伤害委托，从 TakeDamage 回调中获取实际伤害值
 			if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(TargetAvatar))
 			{
 				CombatInterface->GetOnDamageSignature().AddLambda([&](float DamageAmount)
@@ -190,6 +244,7 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 					DamageTypeValue = DamageAmount;
 				});
 			}
+			// 应用范围伤害（会触发目标的 TakeDamage，进而触发委托回调）
 			UGameplayStatics::ApplyRadialDamageWithFalloff(
 				TargetAvatar,
 				DamageTypeValue,
@@ -207,19 +262,21 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 		Damage += DamageTypeValue;
 	}
 
-	// Capture BlockChance on Target, and determine if there was a successful Block
-	
+	// 步骤 3：判定格挡（Block）
 	float TargetBlockChance = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().BlockChanceDef, EvaluationParameters, TargetBlockChance);
 	TargetBlockChance = FMath::Max<float>(TargetBlockChance, 0.f);
 
+	// 随机判定是否格挡成功
 	const bool bBlocked = FMath::RandRange(1, 100) < TargetBlockChance;
 	
+	// 在 Context 中标记格挡状态（用于 UI 显示）
 	UAuraAbilitySystemLibrary::SetIsBlockedHit(EffectContextHandle, bBlocked);
 
-	// If Block, halve the damage.	
+	// 如果格挡成功，伤害减半
 	Damage = bBlocked ? Damage / 2.f : Damage;
 	
+	// 步骤 4：计算护甲减免
 	float TargetArmor = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().ArmorDef, EvaluationParameters, TargetArmor);
 	TargetArmor = FMath::Max<float>(TargetArmor, 0.f);
@@ -228,18 +285,22 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().ArmorPenetrationDef, EvaluationParameters, SourceArmorPenetration);
 	SourceArmorPenetration = FMath::Max<float>(SourceArmorPenetration, 0.f);
 
+	// 获取护甲穿透系数（根据源等级从曲线读取）
 	const UCharacterClassInfo* CharacterClassInfo = UAuraAbilitySystemLibrary::GetCharacterClassInfo(SourceAvatar);
 	const FRealCurve* ArmorPenetrationCurve = CharacterClassInfo->DamageCalculationCoefficients->FindCurve(FName("ArmorPenetration"), FString());
 	const float ArmorPenetrationCoefficient = ArmorPenetrationCurve->Eval(SourcePlayerLevel);
 	
-	// ArmorPenetration ignores a percentage of the Target's Armor.	
+	// 计算有效护甲：目标护甲 * (100 - 护甲穿透 * 系数) / 100
 	const float EffectiveArmor = TargetArmor * ( 100 - SourceArmorPenetration * ArmorPenetrationCoefficient ) / 100.f;
 
+	// 获取有效护甲系数（根据目标等级从曲线读取）
 	const FRealCurve* EffectiveArmorCurve = CharacterClassInfo->DamageCalculationCoefficients->FindCurve(FName("EffectiveArmor"), FString());
 	const float EffectiveArmorCoefficient = EffectiveArmorCurve->Eval(TargetPlayerLevel);
-	// Armor ignores a percentage of incoming Damage.
+	
+	// 应用护甲减免：伤害 = 伤害 * (100 - 有效护甲 * 系数) / 100
 	Damage *= ( 100 - EffectiveArmor * EffectiveArmorCoefficient ) / 100.f;
 
+	// 步骤 5：判定暴击（Critical Hit）
 	float SourceCriticalHitChance = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().CriticalHitChanceDef, EvaluationParameters, SourceCriticalHitChance);
 	SourceCriticalHitChance = FMath::Max<float>(SourceCriticalHitChance, 0.f);
@@ -252,18 +313,21 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().CriticalHitDamageDef, EvaluationParameters, SourceCriticalHitDamage);
 	SourceCriticalHitDamage = FMath::Max<float>(SourceCriticalHitDamage, 0.f);
 
+	// 获取暴击抗性系数（根据目标等级从曲线读取）
 	const FRealCurve* CriticalHitResistanceCurve = CharacterClassInfo->DamageCalculationCoefficients->FindCurve(FName("CriticalHitResistance"), FString());
 	const float CriticalHitResistanceCoefficient = CriticalHitResistanceCurve->Eval(TargetPlayerLevel);
 
-	// Critical Hit Resistance reduces Critical Hit Chance by a certain percentage
+	// 计算有效暴击率：源暴击率 - 目标暴击抗性 * 系数
 	const float EffectiveCriticalHitChance = SourceCriticalHitChance - TargetCriticalHitResistance * CriticalHitResistanceCoefficient;
 	const bool bCriticalHit = FMath::RandRange(1, 100) < EffectiveCriticalHitChance;
 
+	// 在 Context 中标记暴击状态（用于 UI 显示）
 	UAuraAbilitySystemLibrary::SetIsCriticalHit(EffectContextHandle, bCriticalHit);
 
-	// Double damage plus a bonus if critical hit
+	// 如果暴击，伤害 = 2 * 伤害 + 暴击伤害加成
 	Damage = bCriticalHit ? 2.f * Damage + SourceCriticalHitDamage : Damage;
 	
+	// 步骤 6：将最终伤害应用到 Health 属性
 	const FGameplayModifierEvaluatedData EvaluatedData(UAuraAttributeSet::GetIncomingDamageAttribute(), EGameplayModOp::Additive, Damage);
 	OutExecutionOutput.AddOutputModifier(EvaluatedData);
 }

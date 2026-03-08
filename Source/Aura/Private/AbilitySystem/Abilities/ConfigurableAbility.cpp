@@ -12,6 +12,14 @@
 #include "GameFramework/Character.h"
 #include "Engine/OverlapResult.h"
 
+/**
+ * 构造函数：初始化可配置技能
+ * 
+ * 实现流程：
+ * 1. 初始化动作索引为 0
+ * 2. 初始化目标缓存标志为 false
+ * 3. 初始化目标位置为 ZeroVector
+ */
 UConfigurableAbility::UConfigurableAbility()
 {
 	CurrentActionIndex = 0;
@@ -19,6 +27,25 @@ UConfigurableAbility::UConfigurableAbility()
 	CachedTargetLocation = FVector::ZeroVector;
 }
 
+/**
+ * 激活技能（重写基类）
+ * 
+ * 实现流程：
+ * 1. 提交技能（CommitAbility，检查消耗和冷却）
+ * 2. 校验 AbilityConfig 已配置
+ * 3. 校验动作列表不为空
+ * 4. 如果技能需要目标，缓存目标位置
+ * 5. 播放施法视觉效果（粒子系统和音效）
+ * 6. 重置动作索引
+ * 7. 开始执行动作序列（ExecuteNextAction）
+ * 
+ * 使用场景：
+ * - 技能激活时自动调用
+ * 
+ * 注意：
+ * - ConfigurableAbility 通过 AbilityConfig 数据资产配置技能行为
+ * - 技能由一系列动作组成，按顺序执行
+ */
 void UConfigurableAbility::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
@@ -45,7 +72,7 @@ void UConfigurableAbility::ActivateAbility(
 		return;
 	}
 	
-	// 缓存目标位置
+	// 缓存目标位置（如果技能需要目标）
 	if (AbilityConfig->bRequiresTarget)
 	{
 		CachedTargetLocation = GetTargetLocation();
@@ -68,6 +95,17 @@ void UConfigurableAbility::ActivateAbility(
 	ExecuteNextAction();
 }
 
+/**
+ * 结束技能（重写基类）
+ * 
+ * 实现流程：
+ * 1. 清理动作定时器（如果有效）
+ * 2. 重置动作索引和目标缓存
+ * 3. 调用父类 EndAbility
+ * 
+ * 使用场景：
+ * - 技能结束时自动调用
+ */
 void UConfigurableAbility::EndAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
@@ -89,6 +127,28 @@ void UConfigurableAbility::EndAbility(
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
+/**
+ * 执行下一个动作
+ * 
+ * 实现流程：
+ * 1. 检查是否所有动作已执行完毕
+ * 2. 如果完毕，结束技能
+ * 3. 获取当前动作配置
+ * 4. 如果动作有延迟：
+ *    - 设置定时器，延迟执行动作
+ *    - 执行后递增索引并继续下一个动作
+ * 5. 如果动作无延迟：
+ *    - 立即执行动作
+ *    - 递增索引并继续下一个动作
+ * 
+ * 使用场景：
+ * - 技能激活时调用（开始执行序列）
+ * - 每个动作执行完成后调用（继续下一个动作）
+ * 
+ * 注意：
+ * - 动作按顺序执行，支持延迟配置
+ * - 所有动作执行完毕后技能自动结束
+ */
 void UConfigurableAbility::ExecuteNextAction()
 {
 	if (!AbilityConfig || CurrentActionIndex >= AbilityConfig->Actions.Num())
