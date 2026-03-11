@@ -7,20 +7,26 @@
 #include "BTService_FindNearestPlayer.generated.h"
 
 /**
- * 行为树服务：查找最近的玩家
+ * 行为树服务：查找最近的目标
  *
  * 功能：
- * - 每帧（或按指定间隔）扫描场景中所有实现了 IPlayerInterface 的 Actor
- * - 找到距离 AI 最近的玩家，将其写入黑板的 TargetToFollowSelector 键
+ * - 每帧（或按指定间隔）根据 AI 自身标签确定目标标签：
+ *   - 如果 AI 是 Player，目标标签为 "Enemy"
+ *   - 否则目标标签为 "Player"
+ * - 找到距离 AI 最近的目标 Actor，将其写入黑板的 TargetToFollowSelector 键
  * - 同时将距离写入黑板的 DistanceToTargetSelector 键
  *
  * 使用方式：
- *   在行为树编辑器中，将此服务挂载到需要追踪玩家的行为树节点上
+ *   在行为树编辑器中，将此服务挂载到需要追踪目标的行为树节点上
  *   配置 TargetToFollowSelector 和 DistanceToTargetSelector 黑板键
  *
  * 黑板键说明：
- *   - TargetToFollowSelector：Object 类型，存储最近玩家的 Actor 引用
- *   - DistanceToTargetSelector：Float 类型，存储到最近玩家的距离（单位：cm）
+ *   - TargetToFollowSelector：Object 类型，存储最近目标的 Actor 引用
+ *   - DistanceToTargetSelector：Float 类型，存储到最近目标的距离（单位：cm）
+ *
+ * 注意：
+ * - 此服务会持续更新最近目标，确保 AI 始终追踪最近的敌人/玩家
+ * - 如果未找到目标，黑板值会被设置为 nullptr 和最大浮点数
  */
 UCLASS()
 class AURA_API UBTService_FindNearestPlayer : public UBTService_BlueprintBase
@@ -28,11 +34,27 @@ class AURA_API UBTService_FindNearestPlayer : public UBTService_BlueprintBase
 	GENERATED_BODY()
 protected:
 	/**
-	 * 行为树服务 Tick 回调（每次服务更新时调用）
-	 * 遍历所有玩家，找到最近的一个，更新黑板数据
-	 * @param OwnerComp   拥有此服务的行为树组件
-	 * @param NodeMemory  节点内存（此服务不使用）
-	 * @param DeltaSeconds 上次更新到本次更新的时间间隔
+	 * 每帧更新节点（BTService 的核心函数）
+	 *
+	 * 实现流程：
+	 * 1. 调用父类 TickNode
+	 * 2. 获取 AI 控制的 Pawn
+	 * 3. 确定目标标签：
+	 *    - 如果 Pawn 是 Player，目标标签为 "Enemy"
+	 *    - 否则目标标签为 "Player"
+	 * 4. 获取所有带有目标标签的 Actor
+	 * 5. 遍历所有 Actor，找到距离最近的：
+	 *    - 计算距离（GetDistanceTo）
+	 *    - 更新最近距离和最近 Actor
+	 * 6. 将最近 Actor 设置到黑板（TargetToFollowSelector）
+	 * 7. 将最近距离设置到黑板（DistanceToTargetSelector）
+	 *
+	 * @param OwnerComp    行为树组件
+	 * @param NodeMemory   节点内存
+	 * @param DeltaSeconds 帧时间间隔
+	 *
+	 * 使用场景：
+	 * - AI 行为树每帧调用，更新目标信息
 	 */
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
