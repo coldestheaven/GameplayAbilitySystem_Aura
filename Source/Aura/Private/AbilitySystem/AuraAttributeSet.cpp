@@ -10,6 +10,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GameplayTags/AuraGameplayTags.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
+#include "AbilitySystem/AuraEffectContextLibrary.h"
 #include "Interaction/CombatInterface.h"
 #include "Interaction/PlayerInterface.h"
 #include "Player/AuraPlayerController.h"
@@ -232,8 +233,8 @@ void UAuraAttributeSet::HandleIncomingDamage(const FEffectProperties& Props)
 			ICombatInterface* CombatInterface = Cast<ICombatInterface>(Props.TargetAvatarActor);
 			if (CombatInterface)
 			{
-				FVector Impulse = UAuraAbilitySystemLibrary::GetDeathImpulse(Props.EffectContextHandle);
-				CombatInterface->Die(UAuraAbilitySystemLibrary::GetDeathImpulse(Props.EffectContextHandle));
+				FVector Impulse = UAuraEffectContextLibrary::GetDeathImpulse(Props.EffectContextHandle);
+				CombatInterface->Die(UAuraEffectContextLibrary::GetDeathImpulse(Props.EffectContextHandle));
 			}
 			// 发送 XP 事件给击杀者
 			SendXPEvent(Props);
@@ -250,7 +251,7 @@ void UAuraAttributeSet::HandleIncomingDamage(const FEffectProperties& Props)
 			}
 			
 			// 应用击退力（如果有）
-			const FVector& KnockbackForce = UAuraAbilitySystemLibrary::GetKnockbackForce(Props.EffectContextHandle);
+			const FVector& KnockbackForce = UAuraEffectContextLibrary::GetKnockbackForce(Props.EffectContextHandle);
 			if (!KnockbackForce.IsNearlyZero(1.f))
 			{
 				Props.TargetCharacter->LaunchCharacter(KnockbackForce, true, true);
@@ -258,12 +259,12 @@ void UAuraAttributeSet::HandleIncomingDamage(const FEffectProperties& Props)
 		}
 		
 		// 显示浮动伤害数字（格挡/暴击会有不同显示）
-		const bool bBlock = UAuraAbilitySystemLibrary::IsBlockedHit(Props.EffectContextHandle);
-		const bool bCriticalHit = UAuraAbilitySystemLibrary::IsCriticalHit(Props.EffectContextHandle);
+		const bool bBlock = UAuraEffectContextLibrary::IsBlockedHit(Props.EffectContextHandle);
+		const bool bCriticalHit = UAuraEffectContextLibrary::IsCriticalHit(Props.EffectContextHandle);
 		ShowFloatingText(Props, LocalIncomingDamage, bBlock, bCriticalHit);
 		
 		// 如果成功触发 Debuff，应用 Debuff 效果
-		if (UAuraAbilitySystemLibrary::IsSuccessfulDebuff(Props.EffectContextHandle))
+		if (UAuraEffectContextLibrary::IsSuccessfulDebuff(Props.EffectContextHandle))
 		{
 			Debuff(Props);
 		}
@@ -293,10 +294,10 @@ void UAuraAttributeSet::Debuff(const FEffectProperties& Props)
 	EffectContext.AddSourceObject(Props.SourceAvatarActor);
 
 	// 从上下文获取 Debuff 参数
-	const FGameplayTag DamageType = UAuraAbilitySystemLibrary::GetDamageType(Props.EffectContextHandle);
-	const float DebuffDamage = UAuraAbilitySystemLibrary::GetDebuffDamage(Props.EffectContextHandle);
-	const float DebuffDuration = UAuraAbilitySystemLibrary::GetDebuffDuration(Props.EffectContextHandle);
-	const float DebuffFrequency = UAuraAbilitySystemLibrary::GetDebuffFrequency(Props.EffectContextHandle);
+	const FGameplayTag DamageType = UAuraEffectContextLibrary::GetDamageType(Props.EffectContextHandle);
+	const float DebuffDamage = UAuraEffectContextLibrary::GetDebuffDamage(Props.EffectContextHandle);
+	const float DebuffDuration = UAuraEffectContextLibrary::GetDebuffDuration(Props.EffectContextHandle);
+	const float DebuffFrequency = UAuraEffectContextLibrary::GetDebuffFrequency(Props.EffectContextHandle);
 
 	// 动态创建 GameplayEffect（使用临时包，不保存到磁盘）
 	FString DebuffName = FString::Printf(TEXT("DynamicDebuff_%s"), *DamageType.ToString());

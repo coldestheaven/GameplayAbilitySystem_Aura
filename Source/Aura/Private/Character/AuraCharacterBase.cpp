@@ -187,22 +187,26 @@ void AAuraCharacterBase::BeginPlay()
 FVector AAuraCharacterBase::GetCombatSocketLocation_Implementation(const FGameplayTag& MontageTag)
 {
 	const FAuraGameplayTags& GameplayTags = FAuraGameplayTags::Get();
+
+	// 武器插槽单独处理（需要检查 Weapon 有效性，且使用 Weapon 组件而非 Mesh）
 	if (MontageTag.MatchesTagExact(GameplayTags.CombatSocket_Weapon) && IsValid(Weapon))
 	{
 		return Weapon->GetSocketLocation(WeaponTipSocketName);
 	}
-	if (MontageTag.MatchesTagExact(GameplayTags.CombatSocket_LeftHand))
+
+	// 数据驱动：Tag → SocketName 映射，消除重复的 if-else 链
+	const TMap<FGameplayTag, FName> TagToSocketName =
 	{
-		return GetMesh()->GetSocketLocation(LeftHandSocketName);
-	}
-	if (MontageTag.MatchesTagExact(GameplayTags.CombatSocket_RightHand))
+		{ GameplayTags.CombatSocket_LeftHand,  LeftHandSocketName  },
+		{ GameplayTags.CombatSocket_RightHand, RightHandSocketName },
+		{ GameplayTags.CombatSocket_Tail,      TailSocketName      },
+	};
+
+	if (const FName* SocketName = TagToSocketName.Find(MontageTag))
 	{
-		return GetMesh()->GetSocketLocation(RightHandSocketName);
+		return GetMesh()->GetSocketLocation(*SocketName);
 	}
-	if (MontageTag.MatchesTagExact(GameplayTags.CombatSocket_Tail))
-	{
-		return GetMesh()->GetSocketLocation(TailSocketName);
-	}
+
 	return FVector();
 }
 

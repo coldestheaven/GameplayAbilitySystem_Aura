@@ -25,6 +25,23 @@
  * 注意：
  * - ClientEffectApplied 会广播 EffectAssetTags，供 UI 系统监听
  */
+// ─────────────────────────────────────────────────────────────────────────────
+// 内部辅助：从标签容器中查找第一个匹配指定父标签的子标签
+// 消除 GetAbilityTagFromSpec / GetInputTagFromSpec / GetStatusFromSpec 的重复遍历逻辑
+// ─────────────────────────────────────────────────────────────────────────────
+static FGameplayTag FindFirstTagMatchingParent(const FGameplayTagContainer& Tags, const FName& ParentTagName)
+{
+	const FGameplayTag ParentTag = FGameplayTag::RequestGameplayTag(ParentTagName);
+	for (const FGameplayTag& Tag : Tags)
+	{
+		if (Tag.MatchesTag(ParentTag))
+		{
+			return Tag;
+		}
+	}
+	return FGameplayTag();
+}
+
 void UAuraAbilitySystemComponent::AbilityActorInfoSet()
 {
 	OnGameplayEffectAppliedDelegateToSelf.AddUObject(this, &UAuraAbilitySystemComponent::ClientEffectApplied);
@@ -280,39 +297,19 @@ FGameplayTag UAuraAbilitySystemComponent::GetAbilityTagFromSpec(const FGameplayA
 {
 	if (AbilitySpec.Ability)
 	{
-		for (FGameplayTag Tag : AbilitySpec.Ability.Get()->AbilityTags)
-		{
-			if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag(FName("Abilities"))))
-			{
-				return Tag;
-			}
-		}
+		return FindFirstTagMatchingParent(AbilitySpec.Ability.Get()->AbilityTags, FName("Abilities"));
 	}
 	return FGameplayTag();
 }
 
 FGameplayTag UAuraAbilitySystemComponent::GetInputTagFromSpec(const FGameplayAbilitySpec& AbilitySpec)
 {
-	for (FGameplayTag Tag : AbilitySpec.DynamicAbilityTags)
-	{
-		if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag(FName("InputTag"))))
-		{
-			return Tag;
-		}
-	}
-	return FGameplayTag();
+	return FindFirstTagMatchingParent(AbilitySpec.DynamicAbilityTags, FName("InputTag"));
 }
 
 FGameplayTag UAuraAbilitySystemComponent::GetStatusFromSpec(const FGameplayAbilitySpec& AbilitySpec)
 {
-	for (FGameplayTag StatusTag : AbilitySpec.DynamicAbilityTags)
-	{
-		if (StatusTag.MatchesTag(FGameplayTag::RequestGameplayTag(FName("Abilities.Status"))))
-		{
-			return StatusTag;
-		}
-	}
-	return FGameplayTag();
+	return FindFirstTagMatchingParent(AbilitySpec.DynamicAbilityTags, FName("Abilities.Status"));
 }
 
 FGameplayTag UAuraAbilitySystemComponent::GetStatusFromAbilityTag(const FGameplayTag& AbilityTag)

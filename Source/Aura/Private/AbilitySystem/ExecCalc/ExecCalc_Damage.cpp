@@ -8,6 +8,7 @@
 #include "GameplayTags/AuraGameplayTags.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
 #include "AbilitySystem/AuraAttributeSet.h"
+#include "AbilitySystem/AuraEffectContextLibrary.h"
 #include "AbilitySystem/Data/CharacterClassInfo.h"
 #include "Camera/CameraShakeSourceActor.h"
 #include "Interaction/CombatInterface.h"
@@ -107,16 +108,16 @@ void UExecCalc_Damage::DetermineDebuff(const FGameplayEffectCustomExecutionParam
 			{
 				FGameplayEffectContextHandle ContextHandle = Spec.GetContext();
 
-				UAuraAbilitySystemLibrary::SetIsSuccessfulDebuff(ContextHandle, true);
-				UAuraAbilitySystemLibrary::SetDamageType(ContextHandle, DamageType);
+				UAuraEffectContextLibrary::SetIsSuccessfulDebuff(ContextHandle, true);
+				UAuraEffectContextLibrary::SetDamageType(ContextHandle, DamageType);
 
 				const float DebuffDamage = Spec.GetSetByCallerMagnitude(GameplayTags.Debuff_Damage, false, -1.f);
 				const float DebuffDuration = Spec.GetSetByCallerMagnitude(GameplayTags.Debuff_Duration, false, -1.f);
 				const float DebuffFrequency = Spec.GetSetByCallerMagnitude(GameplayTags.Debuff_Frequency, false, -1.f);
 
-				UAuraAbilitySystemLibrary::SetDebuffDamage(ContextHandle, DebuffDamage);
-				UAuraAbilitySystemLibrary::SetDebuffDuration(ContextHandle, DebuffDuration);
-				UAuraAbilitySystemLibrary::SetDebuffFrequency(ContextHandle, DebuffFrequency);
+				UAuraEffectContextLibrary::SetDebuffDamage(ContextHandle, DebuffDamage);
+				UAuraEffectContextLibrary::SetDebuffDuration(ContextHandle, DebuffDuration);
+				UAuraEffectContextLibrary::SetDebuffFrequency(ContextHandle, DebuffFrequency);
 			}
 		}
 	}
@@ -234,7 +235,7 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 
 		// 如果是范围伤害，使用引擎的 ApplyRadialDamageWithFalloff
 		// 注意：范围伤害会通过 TakeDamage 回调获取实际伤害值
-		if (UAuraAbilitySystemLibrary::IsRadialDamage(EffectContextHandle))
+		if (UAuraEffectContextLibrary::IsRadialDamage(EffectContextHandle))
 		{
 			// 绑定伤害委托，从 TakeDamage 回调中获取实际伤害值
 			if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(TargetAvatar))
@@ -249,9 +250,9 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 				TargetAvatar,
 				DamageTypeValue,
 				0.f,
-				UAuraAbilitySystemLibrary::GetRadialDamageOrigin(EffectContextHandle),
-				UAuraAbilitySystemLibrary::GetRadialDamageInnerRadius(EffectContextHandle),
-				UAuraAbilitySystemLibrary::GetRadialDamageOuterRadius(EffectContextHandle),
+				UAuraEffectContextLibrary::GetRadialDamageOrigin(EffectContextHandle),
+				UAuraEffectContextLibrary::GetRadialDamageInnerRadius(EffectContextHandle),
+				UAuraEffectContextLibrary::GetRadialDamageOuterRadius(EffectContextHandle),
 				1.f,
 				UDamageType::StaticClass(),
 				TArray<AActor*>(),
@@ -271,7 +272,7 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	const bool bBlocked = FMath::RandRange(1, 100) < TargetBlockChance;
 	
 	// 在 Context 中标记格挡状态（用于 UI 显示）
-	UAuraAbilitySystemLibrary::SetIsBlockedHit(EffectContextHandle, bBlocked);
+	UAuraEffectContextLibrary::SetIsBlockedHit(EffectContextHandle, bBlocked);
 
 	// 如果格挡成功，伤害减半
 	Damage = bBlocked ? Damage / 2.f : Damage;
@@ -322,7 +323,7 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	const bool bCriticalHit = FMath::RandRange(1, 100) < EffectiveCriticalHitChance;
 
 	// 在 Context 中标记暴击状态（用于 UI 显示）
-	UAuraAbilitySystemLibrary::SetIsCriticalHit(EffectContextHandle, bCriticalHit);
+	UAuraEffectContextLibrary::SetIsCriticalHit(EffectContextHandle, bCriticalHit);
 
 	// 如果暴击，伤害 = 2 * 伤害 + 暴击伤害加成
 	Damage = bCriticalHit ? 2.f * Damage + SourceCriticalHitDamage : Damage;
