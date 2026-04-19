@@ -37,12 +37,11 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageSignature, float /*DamageAmount*/);
  * 将动画蒙太奇与 GameplayTag 关联，用于标识攻击类型和战斗插槽
  *
  * 使用示例：
- *   // 在 AuraCharacterBase 的 AttackMontages 数组中配置
  *   FTaggedMontage AttackMontage;
  *   AttackMontage.Montage = AM_Attack_Sword;
- *   AttackMontage.MontageTag = Montage.Attack.Weapon;  // 标识此蒙太奇类型
- *   AttackMontage.SocketTag = CombatSocket.Weapon;     // 标识使用哪个插槽位置
- *   AttackMontage.ImpactSound = S_SwordHit;            // 命中音效
+ *   AttackMontage.MontageTag = Montage.Attack.Weapon;
+ *   AttackMontage.SocketTag = CombatSocket.Weapon;
+ *   AttackMontage.ImpactSound = S_SwordHit;
  */
 USTRUCT(BlueprintType)
 struct FTaggedMontage
@@ -74,17 +73,21 @@ class UCombatInterface : public UInterface
 };
 
 /**
- * 战斗接口
+ * 战斗接口（核心战斗功能）
  *
  * 所有参与战斗的角色（玩家和敌人）都实现此接口
- * 提供战斗系统所需的通用功能：
+ * 只包含核心战斗功能，其他功能已拆分到专用接口：
+ * - 动画查询 → IAnimationInterface（GetHitReactMontage、GetAttackMontages 等）
+ * - 召唤物管理 → ISummonInterface（GetMinionCount、IncrementMinionCount）
+ *
+ * 职责：
  * - 等级查询（GetPlayerLevel）
  * - 战斗插槽位置（GetCombatSocketLocation）
- * - 受击动画（GetHitReactMontage）
- * - 死亡处理（Die）
- * - 攻击蒙太奇（GetAttackMontages）
- * - 召唤物管理（GetMinionCount/IncrementMinionCount）
- * - 电击状态（IsBeingShocked/SetIsBeingShocked）
+ * - 死亡处理（Die、IsDead、GetOnDeathDelegate）
+ * - 角色信息（GetAvatar、GetCharacterClass、GetBloodEffect）
+ * - 武器获取（GetWeapon）
+ * - 电击状态（IsBeingShocked、SetIsBeingShocked）
+ * - ASC 注册委托（GetOnASCRegisteredDelegate）
  */
 class AURACORE_API ICombatInterface
 {
@@ -101,7 +104,6 @@ public:
 	/**
 	 * 获取战斗插槽的世界位置（蓝图原生事件，蓝图可调用）
 	 * 根据 MontageTag 返回对应插槽的世界坐标（武器尖端、左手、右手等）
-	 * 用于投射物生成位置和近战伤害判定位置
 	 * @param MontageTag 标识插槽类型的 GameplayTag
 	 * @return 插槽的世界坐标
 	 */
@@ -117,16 +119,7 @@ public:
 	void UpdateFacingTarget(const FVector& Target);
 
 	/**
-	 * 获取受击动画蒙太奇（蓝图原生事件，蓝图可调用）
-	 * 被攻击时播放的受击反应动画
-	 * @return 受击动画蒙太奇
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	UAnimMontage* GetHitReactMontage();
-
-	/**
 	 * 角色死亡处理（纯虚函数，子类必须实现）
-	 * 处理死亡逻辑：布娃娃、溶解特效、死亡音效等
 	 * @param DeathImpulse 死亡冲量（用于布娃娃物理击飞效果）
 	 */
 	virtual void Die(const FVector& DeathImpulse) = 0;
@@ -135,7 +128,7 @@ public:
 	virtual FOnDeathSignature& GetOnDeathDelegate() = 0;
 
 	/** 获取伤害委托引用（纯虚函数，子类必须实现） */
-	virtual FOnDamageSignature& GetOnDamageSignature() = 0; 
+	virtual FOnDamageSignature& GetOnDamageSignature() = 0;
 
 	/**
 	 * 判断角色是否已死亡（蓝图原生事件，蓝图可调用）
@@ -146,49 +139,17 @@ public:
 
 	/**
 	 * 获取 Avatar Actor（蓝图原生事件，蓝图可调用）
-	 * 返回实际的角色 Pawn（通常为 this）
 	 * @return Avatar Actor 指针
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	AActor* GetAvatar();
 
 	/**
-	 * 获取所有带标签的攻击蒙太奇（蓝图原生事件，蓝图可调用）
-	 * 返回角色配置的所有攻击动画及其对应的标签
-	 * @return 带标签蒙太奇数组
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	TArray<FTaggedMontage> GetAttackMontages();
-
-	/**
 	 * 获取死亡血液特效（蓝图原生事件，蓝图可调用）
-	 * 角色死亡时播放的 Niagara 粒子特效
 	 * @return 血液 Niagara 特效资产
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	UNiagaraSystem* GetBloodEffect();
-
-	/**
-	 * 根据标签获取对应的带标签蒙太奇（蓝图原生事件，蓝图可调用）
-	 * @param MontageTag 要查找的蒙太奇标签
-	 * @return 对应的 FTaggedMontage 结构体
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	FTaggedMontage GetTaggedMontageByTag(const FGameplayTag& MontageTag);
-
-	/**
-	 * 获取当前召唤物数量（蓝图原生事件，蓝图可调用）
-	 * @return 当前存活的召唤物数量
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	int32 GetMinionCount();
-
-	/**
-	 * 增加/减少召唤物计数（蓝图原生事件，蓝图可调用）
-	 * @param Amount 正数增加，负数减少
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void IncrementMinionCount(int32 Amount);
 
 	/**
 	 * 获取角色职业类型（蓝图原生事件，蓝图可调用）
@@ -202,7 +163,6 @@ public:
 
 	/**
 	 * 设置电击循环状态（蓝图实现事件，蓝图可调用）
-	 * 控制电击特效的循环播放（在蓝图中实现）
 	 * @param bInLoop true 表示开始循环，false 表示停止循环
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
