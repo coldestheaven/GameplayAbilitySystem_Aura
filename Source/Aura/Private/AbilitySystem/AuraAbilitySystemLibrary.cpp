@@ -12,6 +12,7 @@
 #include "Engine/OverlapResult.h"
 #include "UI/HUD/AuraHUD.h"
 #include "UI/WidgetController/AuraWidgetController.h"
+#include "AbilitySystem/AuraEffectContextLibrary.h"
 
 /**
  * 创建 WidgetController 参数结构体
@@ -451,236 +452,141 @@ ULootTiers* UAuraAbilitySystemLibrary::GetLootTiers(const UObject* WorldContextO
 
 bool UAuraAbilitySystemLibrary::IsBlockedHit(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->IsBlockedHit();
-	}
-	return false;
+	return UAuraEffectContextLibrary::IsBlockedHit(EffectContextHandle);
 }
 
 bool UAuraAbilitySystemLibrary::IsSuccessfulDebuff(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->IsSuccessfulDebuff();
-	}
-	return false;
+	return UAuraEffectContextLibrary::IsSuccessfulDebuff(EffectContextHandle);
 }
 
 float UAuraAbilitySystemLibrary::GetDebuffDamage(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetDebuffDamage();
-	}
-	return 0.f;
+	return UAuraEffectContextLibrary::GetDebuffDamage(EffectContextHandle);
 }
 
 float UAuraAbilitySystemLibrary::GetDebuffDuration(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetDebuffDuration();
-	}
-	return 0.f;
+	return UAuraEffectContextLibrary::GetDebuffDuration(EffectContextHandle);
 }
 
 float UAuraAbilitySystemLibrary::GetDebuffFrequency(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetDebuffFrequency();
-	}
-	return 0.f;
+	return UAuraEffectContextLibrary::GetDebuffFrequency(EffectContextHandle);
 }
 
 FGameplayTag UAuraAbilitySystemLibrary::GetDamageType(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		if (AuraEffectContext->GetDamageType().IsValid())
-		{
-			return *AuraEffectContext->GetDamageType();
-		}
-	}
-	return FGameplayTag();
+	return UAuraEffectContextLibrary::GetDamageType(EffectContextHandle);
 }
 
 FVector UAuraAbilitySystemLibrary::GetDeathImpulse(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetDeathImpulse();
-	}
-	return FVector::ZeroVector;
+	return UAuraEffectContextLibrary::GetDeathImpulse(EffectContextHandle);
 }
 
 FVector UAuraAbilitySystemLibrary::GetKnockbackForce(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetKnockbackForce();
-	}
-	return FVector::ZeroVector;
+	return UAuraEffectContextLibrary::GetKnockbackForce(EffectContextHandle);
 }
 
 bool UAuraAbilitySystemLibrary::IsCriticalHit(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->IsCriticalHit();
-	}
-	return false;
+	return UAuraEffectContextLibrary::IsCriticalHit(EffectContextHandle);
 }
 
 bool UAuraAbilitySystemLibrary::IsRadialDamage(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->IsRadialDamage();
-	}
-	return false;
+	return UAuraEffectContextLibrary::IsRadialDamage(EffectContextHandle);
 }
 
 float UAuraAbilitySystemLibrary::GetRadialDamageInnerRadius(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetRadialDamageInnerRadius();
-	}
-	return 0.f;
+	return UAuraEffectContextLibrary::GetRadialDamageInnerRadius(EffectContextHandle);
 }
 
 float UAuraAbilitySystemLibrary::GetRadialDamageOuterRadius(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetRadialDamageOuterRadius();
-	}
-	return 0.f;
+	return UAuraEffectContextLibrary::GetRadialDamageOuterRadius(EffectContextHandle);
 }
 
 FVector UAuraAbilitySystemLibrary::GetRadialDamageOrigin(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraEffectContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		return AuraEffectContext->GetRadialDamageOrigin();
-	}
-	return FVector::ZeroVector;
+	return UAuraEffectContextLibrary::GetRadialDamageOrigin(EffectContextHandle);
 }
 
 void UAuraAbilitySystemLibrary::SetIsBlockedHit(FGameplayEffectContextHandle& EffectContextHandle, bool bInIsBlockedHit)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetIsBlockedHit(bInIsBlockedHit);
-	}
+	UAuraEffectContextLibrary::SetIsBlockedHit(EffectContextHandle, bInIsBlockedHit);
 }
 
 void UAuraAbilitySystemLibrary::SetIsCriticalHit(FGameplayEffectContextHandle& EffectContextHandle,
 	bool bInIsCriticalHit)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetIsCriticalHit(bInIsCriticalHit);
-	}
+	UAuraEffectContextLibrary::SetIsCriticalHit(EffectContextHandle, bInIsCriticalHit);
 }
 
 void UAuraAbilitySystemLibrary::SetIsSuccessfulDebuff(FGameplayEffectContextHandle& EffectContextHandle,
 	bool bInSuccessfulDebuff)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetIsSuccessfulDebuff(bInSuccessfulDebuff);
-	}
+	UAuraEffectContextLibrary::SetIsSuccessfulDebuff(EffectContextHandle, bInSuccessfulDebuff);
 }
 
 void UAuraAbilitySystemLibrary::SetDebuffDamage(FGameplayEffectContextHandle& EffectContextHandle, float InDamage)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetDebuffDamage(InDamage);
-	}
+	UAuraEffectContextLibrary::SetDebuffDamage(EffectContextHandle, InDamage);
 }
 
 void UAuraAbilitySystemLibrary::SetDebuffDuration(FGameplayEffectContextHandle& EffectContextHandle, float InDuration)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetDebuffDuration(InDuration);
-	}
+	UAuraEffectContextLibrary::SetDebuffDuration(EffectContextHandle, InDuration);
 }
 
 void UAuraAbilitySystemLibrary::SetDebuffFrequency(FGameplayEffectContextHandle& EffectContextHandle, float InFrequency)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetDebuffFrequency(InFrequency);
-	}
+	UAuraEffectContextLibrary::SetDebuffFrequency(EffectContextHandle, InFrequency);
 }
 
 void UAuraAbilitySystemLibrary::SetDamageType(FGameplayEffectContextHandle& EffectContextHandle,
 	const FGameplayTag& InDamageType)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		const TSharedPtr<FGameplayTag> DamageType = MakeShared<FGameplayTag>(InDamageType);
-		AuraEffectContext->SetDamageType(DamageType);
-	}
+	UAuraEffectContextLibrary::SetDamageType(EffectContextHandle, InDamageType);
 }
 
 void UAuraAbilitySystemLibrary::SetDeathImpulse(FGameplayEffectContextHandle& EffectContextHandle,
 	const FVector& InImpulse)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetDeathImpulse(InImpulse);
-	}
+	UAuraEffectContextLibrary::SetDeathImpulse(EffectContextHandle, InImpulse);
 }
 
 void UAuraAbilitySystemLibrary::SetKnockbackForce(FGameplayEffectContextHandle& EffectContextHandle,
 	const FVector& InForce)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetKnockbackForce(InForce);
-	}
+	UAuraEffectContextLibrary::SetKnockbackForce(EffectContextHandle, InForce);
 }
 
 void UAuraAbilitySystemLibrary::SetIsRadialDamage(FGameplayEffectContextHandle& EffectContextHandle,
 	bool bInIsRadialDamage)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetIsRadialDamage(bInIsRadialDamage);
-	}
+	UAuraEffectContextLibrary::SetIsRadialDamage(EffectContextHandle, bInIsRadialDamage);
 }
 
 void UAuraAbilitySystemLibrary::SetRadialDamageInnerRadius(FGameplayEffectContextHandle& EffectContextHandle,
 	float InInnerRadius)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetRadialDamageInnerRadius(InInnerRadius);
-	}
+	UAuraEffectContextLibrary::SetRadialDamageInnerRadius(EffectContextHandle, InInnerRadius);
 }
 
 void UAuraAbilitySystemLibrary::SetRadialDamageOuterRadius(FGameplayEffectContextHandle& EffectContextHandle,
 	float InOuterRadius)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetRadialDamageOuterRadius(InOuterRadius);
-	}
+	UAuraEffectContextLibrary::SetRadialDamageOuterRadius(EffectContextHandle, InOuterRadius);
 }
 
 void UAuraAbilitySystemLibrary::SetRadialDamageOrigin(FGameplayEffectContextHandle& EffectContextHandle,
 	const FVector& InOrigin)
 {
-	if (FAuraGameplayEffectContext* AuraEffectContext = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
-	{
-		AuraEffectContext->SetRadialDamageOrigin(InOrigin);
-	}
+	UAuraEffectContextLibrary::SetRadialDamageOrigin(EffectContextHandle, InOrigin);
 }
 
 void UAuraAbilitySystemLibrary::GetLivePlayersWithinRadius(const UObject* WorldContextObject,
@@ -719,7 +625,7 @@ void UAuraAbilitySystemLibrary::GetClosestTargets(int32 MaxTargets, const TArray
 	{
 		if (ActorsToCheck.Num() == 0) break;
 		double ClosestDistance = TNumericLimits<double>::Max();
-		AActor* ClosestActor;
+		AActor* ClosestActor = nullptr;
 		for (AActor* PotentialTarget : ActorsToCheck)
 		{
 			const double Distance = (PotentialTarget->GetActorLocation() - Origin).Length();
@@ -750,13 +656,13 @@ FGameplayEffectContextHandle UAuraAbilitySystemLibrary::ApplyDamageEffect(const 
 	
 	FGameplayEffectContextHandle EffectContexthandle = DamageEffectParams.SourceAbilitySystemComponent->MakeEffectContext();
 	EffectContexthandle.AddSourceObject(SourceAvatarActor);
-	SetDeathImpulse(EffectContexthandle, DamageEffectParams.DeathImpulse);
-	SetKnockbackForce(EffectContexthandle, DamageEffectParams.KnockbackForce);
+	UAuraEffectContextLibrary::SetDeathImpulse(EffectContexthandle, DamageEffectParams.DeathImpulse);
+	UAuraEffectContextLibrary::SetKnockbackForce(EffectContexthandle, DamageEffectParams.KnockbackForce);
 
-	SetIsRadialDamage(EffectContexthandle, DamageEffectParams.bIsRadialDamage);
-	SetRadialDamageInnerRadius(EffectContexthandle, DamageEffectParams.RadialDamageInnerRadius);
-	SetRadialDamageOuterRadius(EffectContexthandle, DamageEffectParams.RadialDamageOuterRadius);
-	SetRadialDamageOrigin(EffectContexthandle, DamageEffectParams.RadialDamageOrigin);
+	UAuraEffectContextLibrary::SetIsRadialDamage(EffectContexthandle, DamageEffectParams.bIsRadialDamage);
+	UAuraEffectContextLibrary::SetRadialDamageInnerRadius(EffectContexthandle, DamageEffectParams.RadialDamageInnerRadius);
+	UAuraEffectContextLibrary::SetRadialDamageOuterRadius(EffectContexthandle, DamageEffectParams.RadialDamageOuterRadius);
+	UAuraEffectContextLibrary::SetRadialDamageOrigin(EffectContexthandle, DamageEffectParams.RadialDamageOrigin);
 	
 	const FGameplayEffectSpecHandle SpecHandle = DamageEffectParams.SourceAbilitySystemComponent->MakeOutgoingSpec(DamageEffectParams.DamageGameplayEffectClass, DamageEffectParams.AbilityLevel, EffectContexthandle);
 

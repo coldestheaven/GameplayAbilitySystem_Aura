@@ -72,6 +72,26 @@ public:
 protected:
 
 private:
+	/**
+	 * 懒加载 WidgetController 的通用模板辅助函数
+	 * 若 Controller 为空则创建、初始化并绑定回调，否则直接返回缓存实例
+	 * @param Controller      缓存的控制器引用（TObjectPtr，首次调用后被填充）
+	 * @param ControllerClass 要创建的控制器类
+	 * @param WCParams        WidgetController 初始化参数
+	 * @return 已初始化的 WidgetController 实例
+	 */
+	template<typename T>
+	T* GetOrCreateWidgetController(TObjectPtr<T>& Controller, TSubclassOf<T> ControllerClass, const FWidgetControllerParams& WCParams)
+	{
+		if (Controller == nullptr)
+		{
+			Controller = NewObject<T>(this, ControllerClass);
+			Controller->SetWidgetControllerParams(WCParams);
+			Controller->BindCallbacksToDependencies();
+		}
+		return Controller;
+	}
+
 	/** 主 Overlay Widget 实例（游戏内 HUD，显示生命值、法力值等） */
 	UPROPERTY()
 	TObjectPtr<UAuraUserWidget> OverlayWidget;

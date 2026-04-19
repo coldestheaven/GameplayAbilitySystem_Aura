@@ -8,87 +8,19 @@
 #include "UI/WidgetController/OverlayWidgetController.h"
 #include "UI/WidgetController/SpellMenuWidgetController.h"
 
-/**
- * 获取或创建 Overlay WidgetController（覆盖层 UI 控制器）
- * 
- * 实现流程：
- * 1. 如果控制器未创建，创建新的 OverlayWidgetController 对象
- * 2. 设置 WidgetController 参数（PC、PS、ASC、AS）
- * 3. 绑定回调到依赖项（属性变化、技能变化等）
- * 4. 返回控制器（单例模式，确保只有一个实例）
- * 
- * @param WCParams WidgetController 参数结构体
- * @return OverlayWidgetController 指针
- * 
- * 使用场景：
- * - 初始化覆盖层 UI 时调用
- * - 由 AuraAbilitySystemLibrary::GetOverlayWidgetController 调用
- * 
- * 注意：
- * - 使用单例模式，确保整个游戏只有一个 OverlayWidgetController
- * - BindCallbacksToDependencies 会绑定所有属性变化回调
- */
 UOverlayWidgetController* AAuraHUD::GetOverlayWidgetController(const FWidgetControllerParams& WCParams)
 {
-	if (OverlayWidgetController == nullptr)
-	{
-		OverlayWidgetController = NewObject<UOverlayWidgetController>(this, OverlayWidgetControllerClass);
-		OverlayWidgetController->SetWidgetControllerParams(WCParams);
-		OverlayWidgetController->BindCallbacksToDependencies();
-	}
-	return OverlayWidgetController;
+	return GetOrCreateWidgetController(OverlayWidgetController, OverlayWidgetControllerClass, WCParams);
 }
 
-/**
- * 获取或创建 AttributeMenu WidgetController（属性菜单控制器）
- * 
- * 实现流程：
- * 1. 如果控制器未创建，创建新的 AttributeMenuWidgetController 对象
- * 2. 设置 WidgetController 参数
- * 3. 绑定回调到依赖项
- * 4. 返回控制器（单例模式）
- * 
- * @param WCParams WidgetController 参数结构体
- * @return AttributeMenuWidgetController 指针
- * 
- * 使用场景：
- * - 打开属性菜单时调用
- */
 UAttributeMenuWidgetController* AAuraHUD::GetAttributeMenuWidgetController(const FWidgetControllerParams& WCParams)
 {
-	if (AttributeMenuWidgetController == nullptr)
-	{
-		AttributeMenuWidgetController = NewObject<UAttributeMenuWidgetController>(this, AttributeMenuWidgetControllerClass);
-		AttributeMenuWidgetController->SetWidgetControllerParams(WCParams);
-		AttributeMenuWidgetController->BindCallbacksToDependencies();
-	}
-	return AttributeMenuWidgetController;
+	return GetOrCreateWidgetController(AttributeMenuWidgetController, AttributeMenuWidgetControllerClass, WCParams);
 }
 
-/**
- * 获取或创建 SpellMenu WidgetController（技能菜单控制器）
- * 
- * 实现流程：
- * 1. 如果控制器未创建，创建新的 SpellMenuWidgetController 对象
- * 2. 设置 WidgetController 参数
- * 3. 绑定回调到依赖项
- * 4. 返回控制器（单例模式）
- * 
- * @param WCParams WidgetController 参数结构体
- * @return SpellMenuWidgetController 指针
- * 
- * 使用场景：
- * - 打开技能菜单时调用
- */
 USpellMenuWidgetController* AAuraHUD::GetSpellMenuWidgetController(const FWidgetControllerParams& WCParams)
 {
-	if (SpellMenuWidgetController == nullptr)
-	{
-		SpellMenuWidgetController = NewObject<USpellMenuWidgetController>(this, SpellMenuWidgetControllerClass);
-		SpellMenuWidgetController->SetWidgetControllerParams(WCParams);
-		SpellMenuWidgetController->BindCallbacksToDependencies();
-	}
-	return SpellMenuWidgetController;
+	return GetOrCreateWidgetController(SpellMenuWidgetController, SpellMenuWidgetControllerClass, WCParams);
 }
 
 /**

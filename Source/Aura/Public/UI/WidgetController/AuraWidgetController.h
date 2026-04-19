@@ -173,4 +173,21 @@ protected:
 
 	/** 懒加载获取 Aura 属性集（Cast<UAuraAttributeSet>(AttributeSet)） */
 	UAuraAttributeSet* GetAuraAS();
+
+private:
+	/**
+	 * 懒加载类型转换通用模板（内联，消除四个 GetAuraXxx 的重复结构）
+	 * @param CachedPtr 缓存的指针引用，首次调用后被填充
+	 * @param SourcePtr 要转换的源指针（基类类型）
+	 * @return 已转换的派生类指针，失败返回 nullptr
+	 */
+	template<typename TDerived, typename TBase>
+	FORCEINLINE TDerived* GetOrCast(TObjectPtr<TDerived>& CachedPtr, TObjectPtr<TBase>& SourcePtr)
+	{
+		if (CachedPtr == nullptr)
+		{
+			CachedPtr = Cast<TDerived>(SourcePtr);
+		}
+		return CachedPtr;
+	}
 };

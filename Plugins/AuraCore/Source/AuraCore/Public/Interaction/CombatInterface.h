@@ -83,7 +83,7 @@ class UCombatInterface : public UInterface
  * - 受击动画（GetHitReactMontage）
  * - 死亡处理（Die）
  * - 攻击蒙太奇（GetAttackMontages）
- * - 召唤物管理（GetMinionCount/IncremenetMinionCount）
+ * - 召唤物管理（GetMinionCount/IncrementMinionCount）
  * - 电击状态（IsBeingShocked/SetIsBeingShocked）
  */
 class AURACORE_API ICombatInterface
@@ -188,7 +188,7 @@ public:
 	 * @param Amount 正数增加，负数减少
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void IncremenetMinionCount(int32 Amount);
+	void IncrementMinionCount(int32 Amount);
 
 	/**
 	 * 获取角色职业类型（蓝图原生事件，蓝图可调用）

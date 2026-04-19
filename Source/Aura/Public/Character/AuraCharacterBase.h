@@ -98,7 +98,7 @@ public:
 	 * 增加/减少召唤物计数
 	 * @param Amount 正数增加，负数减少
 	 */
-	virtual void IncremenetMinionCount_Implementation(int32 Amount) override;
+	virtual void IncrementMinionCount_Implementation(int32 Amount) override;
 
 	/** 返回角色职业类型（战士、法师、游侠等） */
 	virtual ECharacterClass GetCharacterClass_Implementation() override;
@@ -292,7 +292,7 @@ protected:
 
 	/* ======================== 召唤物管理 ======================== */
 
-	/** 当前存活的召唤物数量（由 IncremenetMinionCount_Implementation 维护） */
+	/** 当前存活的召唤物数量（由 IncrementMinionCount_Implementation 维护） */
 	int32 MinionCount = 0;
 
 	/**

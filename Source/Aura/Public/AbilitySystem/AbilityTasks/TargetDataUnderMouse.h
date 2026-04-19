@@ -16,9 +16,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMouseTargetDataSignature, const FGa
  * 在服务端和客户端之间同步鼠标光标的命中位置
  *
  * 工作原理：
- * - 本地客户端：通过射线检测获取鼠标光标命中位置，打包成 TargetData 发送给服务端
- * - 服务端：等待客户端发送的 TargetData，收到后广播 ValidData 委托
- * - 预测模式：本地客户端立即广播（不等待服务端确认），实现无延迟的本地预测
+ * - 本地客户端：通过 ECC_Target 碰撞通道射线检测获取鼠标光标命中位置，
+ *              打包成 FGameplayAbilityTargetData_SingleTargetHit 发送给服务端，
+ *              同时立即广播 ValidData 委托（客户端预测，提供即时反馈）
+ * - 服务端：绑定目标数据复制回调，等待客户端发送的 TargetData；
+ *          收到后消费数据并广播 ValidData 委托
+ * - 若数据在绑定前已到达，则立即调用回调；否则进入等待远程玩家数据状态
  *
  * 使用示例（蓝图中）：
  *   // 在技能激活时创建此任务
@@ -52,22 +55,26 @@ public:
 private:
 	/**
 	 * 任务激活（重写基类）
-	 * 本地控制器：调用 SendMouseCursorData 发送目标数据
-	 * 非本地控制器（服务端）：等待客户端发送的目标数据
+	 * - 本地控制器：调用 SendMouseCursorData 发送目标数据
+	 * - 非本地控制器（服务端）：绑定目标数据复制回调；
+	 *   若数据已到达则立即处理，否则调用 SetWaitingOnRemotePlayerData 进入等待状态
 	 */
 	virtual void Activate() override;
 
 	/**
-	 * 发送鼠标光标目标数据
-	 * 通过射线检测获取鼠标光标命中位置，打包成 FGameplayAbilityTargetData_SingleTargetHit
-	 * 然后通过 ASC 的 ServerSetReplicatedTargetData 发送给服务端
+	 * 发送鼠标光标目标数据（仅本地控制器调用）
+	 * 在预测窗口（FScopedPredictionWindow）内，通过 ECC_Target 碰撞通道射线检测
+	 * 获取鼠标光标命中位置，打包成 FGameplayAbilityTargetData_SingleTargetHit，
+	 * 通过 ASC 的 ServerSetReplicatedTargetData 发送给服务端，
+	 * 并立即广播 ValidData 委托实现客户端预测
 	 */
 	void SendMouseCursorData();
 
 	/**
-	 * 目标数据同步回调
-	 * 服务端收到客户端发送的目标数据后调用
-	 * 广播 ValidData 委托，触发技能的目标处理逻辑
+	 * 目标数据复制回调（服务端调用）
+	 * 服务端收到客户端复制的目标数据后触发，
+	 * 消费该数据（ConsumeClientReplicatedTargetData 确保只使用一次），
+	 * 并广播 ValidData 委托以触发技能的目标处理逻辑
 	 * @param DataHandle    收到的目标数据句柄
 	 * @param ActivationTag 激活标签（用于标识此次数据传输）
 	 */

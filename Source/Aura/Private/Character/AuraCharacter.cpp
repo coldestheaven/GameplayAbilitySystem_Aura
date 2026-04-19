@@ -150,13 +150,11 @@ void AAuraCharacter::LoadProgress()
 			}
 			
 			// 从存档恢复等级、XP、属性点、技能点
-			if (AAuraPlayerState* AuraPlayerState = Cast<AAuraPlayerState>(GetPlayerState()))
-			{
-				AuraPlayerState->SetLevel(SaveData->PlayerLevel);
-				AuraPlayerState->SetXP(SaveData->XP);
-				AuraPlayerState->SetAttributePoints(SaveData->AttributePoints);
-				AuraPlayerState->SetSpellPoints(SaveData->SpellPoints);
-			}
+			AAuraPlayerState* AuraPS = GetAuraPlayerState();
+			AuraPS->SetLevel(SaveData->PlayerLevel);
+			AuraPS->SetXP(SaveData->XP);
+			AuraPS->SetAttributePoints(SaveData->AttributePoints);
+			AuraPS->SetSpellPoints(SaveData->SpellPoints);
 			
 			// 从存档恢复主属性值（力量、智力、韧性、活力）
 			UAuraAbilitySystemLibrary::InitializeDefaultAttributesFromSaveData(this, AbilitySystemComponent, SaveData);
@@ -209,9 +207,7 @@ void AAuraCharacter::OnRep_PlayerState()
  */
 void AAuraCharacter::AddToXP_Implementation(int32 InXP)
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	AuraPlayerState->AddToXP(InXP);
+	GetAuraPlayerState()->AddToXP(InXP);
 }
 
 /**
@@ -264,70 +260,53 @@ void AAuraCharacter::MulticastLevelUpParticles_Implementation() const
 
 int32 AAuraCharacter::GetXP_Implementation() const
 {
-	const AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->GetXP();
+	return GetAuraPlayerState()->GetXP();
 }
 
 int32 AAuraCharacter::FindLevelForXP_Implementation(int32 InXP) const
 {
-	const AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->LevelUpInfo->FindLevelForXP(InXP);
+	return GetAuraPlayerState()->LevelUpInfo->FindLevelForXP(InXP);
 }
 
 int32 AAuraCharacter::GetAttributePointsReward_Implementation(int32 Level) const
 {
-	const AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->LevelUpInfo->LevelUpInformation[Level].AttributePointAward;
+	return GetAuraPlayerState()->LevelUpInfo->LevelUpInformation[Level].AttributePointAward;
 }
 
 int32 AAuraCharacter::GetSpellPointsReward_Implementation(int32 Level) const
 {
-	const AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->LevelUpInfo->LevelUpInformation[Level].SpellPointAward;
+	return GetAuraPlayerState()->LevelUpInfo->LevelUpInformation[Level].SpellPointAward;
 }
 
 void AAuraCharacter::AddToPlayerLevel_Implementation(int32 InPlayerLevel)
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	AuraPlayerState->AddToLevel(InPlayerLevel);
+	AAuraPlayerState* AuraPS = GetAuraPlayerState();
+	AuraPS->AddToLevel(InPlayerLevel);
 
 	if (UAuraAbilitySystemComponent* AuraASC = Cast<UAuraAbilitySystemComponent>(GetAbilitySystemComponent()))
 	{
-		AuraASC->UpdateAbilityStatuses(AuraPlayerState->GetPlayerLevel());
+		AuraASC->UpdateAbilityStatuses(AuraPS->GetPlayerLevel());
 	}
 }
 
 void AAuraCharacter::AddToAttributePoints_Implementation(int32 InAttributePoints)
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	AuraPlayerState->AddToAttributePoints(InAttributePoints);
+	GetAuraPlayerState()->AddToAttributePoints(InAttributePoints);
 }
 
 void AAuraCharacter::AddToSpellPoints_Implementation(int32 InSpellPoints)
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	AuraPlayerState->AddToSpellPoints(InSpellPoints);
+	GetAuraPlayerState()->AddToSpellPoints(InSpellPoints);
 }
 
 int32 AAuraCharacter::GetAttributePoints_Implementation() const
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->GetAttributePoints();
+	return GetAuraPlayerState()->GetAttributePoints();
 }
 
 int32 AAuraCharacter::GetSpellPoints_Implementation() const
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->GetSpellPoints();
+	return GetAuraPlayerState()->GetSpellPoints();
 }
 
 void AAuraCharacter::ShowMagicCircle_Implementation(UMaterialInterface* DecalMaterial)
@@ -384,13 +363,11 @@ void AAuraCharacter::SaveProgress_Implementation(const FName& CheckpointTag)
 
 		SaveData->PlayerStartTag = CheckpointTag;
 
-		if (AAuraPlayerState* AuraPlayerState = Cast<AAuraPlayerState>(GetPlayerState()))
-		{
-			SaveData->PlayerLevel = AuraPlayerState->GetPlayerLevel();
-			SaveData->XP = AuraPlayerState->GetXP();
-			SaveData->AttributePoints = AuraPlayerState->GetAttributePoints();
-			SaveData->SpellPoints = AuraPlayerState->GetSpellPoints();
-		}
+		AAuraPlayerState* AuraPS = GetAuraPlayerState();
+		SaveData->PlayerLevel = AuraPS->GetPlayerLevel();
+		SaveData->XP = AuraPS->GetXP();
+		SaveData->AttributePoints = AuraPS->GetAttributePoints();
+		SaveData->SpellPoints = AuraPS->GetSpellPoints();
 		SaveData->Strength = UAuraAttributeSet::GetStrengthAttribute().GetNumericValue(GetAttributeSet());
 		SaveData->Intelligence = UAuraAttributeSet::GetIntelligenceAttribute().GetNumericValue(GetAttributeSet());
 		SaveData->Resilience = UAuraAttributeSet::GetResilienceAttribute().GetNumericValue(GetAttributeSet());
@@ -403,17 +380,19 @@ void AAuraCharacter::SaveProgress_Implementation(const FName& CheckpointTag)
 		UAuraAbilitySystemComponent* AuraASC = Cast<UAuraAbilitySystemComponent>(AbilitySystemComponent);
 		FForEachAbility SaveAbilityDelegate;
 		SaveData->SavedAbilities.Empty();
-		SaveAbilityDelegate.BindLambda([this, AuraASC, SaveData](const FGameplayAbilitySpec& AbilitySpec)
+		// AuraASC 已在外层定义，无需重复捕获，直接通过引用捕获 this 即可访问
+		SaveAbilityDelegate.BindLambda([this, SaveData](const FGameplayAbilitySpec& AbilitySpec)
 		{
-			const FGameplayTag AbilityTag = AuraASC->GetAbilityTagFromSpec(AbilitySpec);
+			UAuraAbilitySystemComponent* LocalAuraASC = Cast<UAuraAbilitySystemComponent>(AbilitySystemComponent);
+			const FGameplayTag AbilityTag = LocalAuraASC->GetAbilityTagFromSpec(AbilitySpec);
 			UAbilityInfo* AbilityInfo = UAuraAbilitySystemLibrary::GetAbilityInfo(this);
 			FAuraAbilityInfo Info = AbilityInfo->FindAbilityInfoForTag(AbilityTag);
 
 			FSavedAbility SavedAbility;
 			SavedAbility.GameplayAbility = Info.Ability;
 			SavedAbility.AbilityLevel = AbilitySpec.Level;
-			SavedAbility.AbilitySlot = AuraASC->GetSlotFromAbilityTag(AbilityTag);
-			SavedAbility.AbilityStatus = AuraASC->GetStatusFromAbilityTag(AbilityTag);
+			SavedAbility.AbilitySlot = LocalAuraASC->GetSlotFromAbilityTag(AbilityTag);
+			SavedAbility.AbilityStatus = LocalAuraASC->GetStatusFromAbilityTag(AbilityTag);
 			SavedAbility.AbilityTag = AbilityTag;
 			SavedAbility.AbilityType = Info.AbilityType;
 
@@ -428,9 +407,7 @@ void AAuraCharacter::SaveProgress_Implementation(const FName& CheckpointTag)
 
 int32 AAuraCharacter::GetPlayerLevel_Implementation()
 {
-	const AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	return AuraPlayerState->GetPlayerLevel();
+	return GetAuraPlayerState()->GetPlayerLevel();
 }
 
 /**
@@ -551,12 +528,11 @@ void AAuraCharacter::OnRep_Burned()
  */
 void AAuraCharacter::InitAbilityActorInfo()
 {
-	AAuraPlayerState* AuraPlayerState = GetPlayerState<AAuraPlayerState>();
-	check(AuraPlayerState);
-	AuraPlayerState->GetAbilitySystemComponent()->InitAbilityActorInfo(AuraPlayerState, this);
-	Cast<UAuraAbilitySystemComponent>(AuraPlayerState->GetAbilitySystemComponent())->AbilityActorInfoSet();
-	AbilitySystemComponent = AuraPlayerState->GetAbilitySystemComponent();
-	AttributeSet = AuraPlayerState->GetAttributeSet();
+	AAuraPlayerState* AuraPS = GetAuraPlayerState();
+	AuraPS->GetAbilitySystemComponent()->InitAbilityActorInfo(AuraPS, this);
+	Cast<UAuraAbilitySystemComponent>(AuraPS->GetAbilitySystemComponent())->AbilityActorInfoSet();
+	AbilitySystemComponent = AuraPS->GetAbilitySystemComponent();
+	AttributeSet = AuraPS->GetAttributeSet();
 	OnAscRegistered.Broadcast(AbilitySystemComponent);
 	AbilitySystemComponent->RegisterGameplayTagEvent(FAuraGameplayTags::Get().Debuff_Stun, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AAuraCharacter::StunTagChanged);
 
@@ -564,7 +540,7 @@ void AAuraCharacter::InitAbilityActorInfo()
 	{
 		if (AAuraHUD* AuraHUD = Cast<AAuraHUD>(AuraPlayerController->GetHUD()))
 		{
-			AuraHUD->InitOverlay(AuraPlayerController, AuraPlayerState, AbilitySystemComponent, AttributeSet);
+			AuraHUD->InitOverlay(AuraPlayerController, AuraPS, AbilitySystemComponent, AttributeSet);
 		}
 	}
 }

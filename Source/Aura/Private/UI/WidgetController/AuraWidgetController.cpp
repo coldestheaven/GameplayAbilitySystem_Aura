@@ -79,9 +79,10 @@ void UAuraWidgetController::BroadcastAbilityInfo()
 	FForEachAbility BroadcastDelegate;
 	BroadcastDelegate.BindLambda([this](const FGameplayAbilitySpec& AbilitySpec)
 	{
-		FAuraAbilityInfo Info = AbilityInfo->FindAbilityInfoForTag(AuraAbilitySystemComponent->GetAbilityTagFromSpec(AbilitySpec));
-		Info.InputTag = AuraAbilitySystemComponent->GetInputTagFromSpec(AbilitySpec);
-		Info.StatusTag = AuraAbilitySystemComponent->GetStatusFromSpec(AbilitySpec);
+		UAuraAbilitySystemComponent* AuraASC = GetAuraASC();
+		FAuraAbilityInfo Info = AbilityInfo->FindAbilityInfoForTag(AuraASC->GetAbilityTagFromSpec(AbilitySpec));
+		Info.InputTag = AuraASC->GetInputTagFromSpec(AbilitySpec);
+		Info.StatusTag = AuraASC->GetStatusFromSpec(AbilitySpec);
 		AbilityInfoDelegate.Broadcast(Info);
 	});
 	GetAuraASC()->ForEachAbility(BroadcastDelegate);
@@ -89,36 +90,20 @@ void UAuraWidgetController::BroadcastAbilityInfo()
 
 AAuraPlayerController* UAuraWidgetController::GetAuraPC()
 {
-	if (AuraPlayerController == nullptr)
-	{
-		AuraPlayerController = Cast<AAuraPlayerController>(PlayerController);
-	}
-	return AuraPlayerController;
+	return GetOrCast(AuraPlayerController, PlayerController);
 }
 
 AAuraPlayerState* UAuraWidgetController::GetAuraPS()
 {
-	if (AuraPlayerState == nullptr)
-	{
-		AuraPlayerState = Cast<AAuraPlayerState>(PlayerState);
-	}
-	return AuraPlayerState;
+	return GetOrCast(AuraPlayerState, PlayerState);
 }
 
 UAuraAbilitySystemComponent* UAuraWidgetController::GetAuraASC()
 {
-	if (AuraAbilitySystemComponent == nullptr)
-	{
-		AuraAbilitySystemComponent = Cast<UAuraAbilitySystemComponent>(AbilitySystemComponent);
-	}
-	return AuraAbilitySystemComponent;
+	return GetOrCast(AuraAbilitySystemComponent, AbilitySystemComponent);
 }
 
 UAuraAttributeSet* UAuraWidgetController::GetAuraAS()
 {
-	if (AuraAttributeSet == nullptr)
-	{
-		AuraAttributeSet = Cast<UAuraAttributeSet>(AttributeSet);
-	}
-	return AuraAttributeSet;
+	return GetOrCast(AuraAttributeSet, AttributeSet);
 }

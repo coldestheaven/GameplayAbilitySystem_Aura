@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Character/AuraCharacterBase.h"
 #include "Interaction/PlayerInterface.h"
+#include "Player/AuraPlayerState.h"
 #include "AuraCharacter.generated.h"
 
 class UNiagaraComponent;
@@ -190,6 +191,17 @@ public:
 	 * 在 Die 函数中设置，计时器到期后自动触发
 	 */
 	FTimerHandle DeathTimer;
+
+	/**
+	 * 获取 AuraPlayerState 辅助函数（内联，消除重复的 GetPlayerState + check 模式）
+	 * @return 已校验非空的 AAuraPlayerState 指针
+	 */
+	FORCEINLINE AAuraPlayerState* GetAuraPlayerState() const
+	{
+		AAuraPlayerState* PS = GetPlayerState<AAuraPlayerState>();
+		check(PS);
+		return PS;
+	}
 
 	/**
 	 * 升级特效 Niagara 组件
