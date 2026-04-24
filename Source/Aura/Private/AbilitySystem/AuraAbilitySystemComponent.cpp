@@ -391,12 +391,9 @@ FGameplayAbilitySpec* UAuraAbilitySystemComponent::GetSpecFromAbilityTag(const F
 	FScopedAbilityListLock ActiveScopeLoc(*this);
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
-		for (FGameplayTag Tag : AbilitySpec.Ability.Get()->AbilityTags)
+		if (AbilitySpec.Ability.Get()->AbilityTags.HasTag(AbilityTag))
 		{
-			if (Tag.MatchesTag(AbilityTag))
-			{
-				return &AbilitySpec;
-			}
+			return &AbilitySpec;
 		}
 	}
 	return nullptr;
@@ -573,14 +570,7 @@ void UAuraAbilitySystemComponent::ClearAbilitiesOfSlot(const FGameplayTag& Slot)
 
 bool UAuraAbilitySystemComponent::AbilityHasSlot(FGameplayAbilitySpec* Spec, const FGameplayTag& Slot)
 {
-	for (FGameplayTag Tag : Spec->DynamicAbilityTags)
-	{
-		if (Tag.MatchesTagExact(Slot))
-		{
-			return true;
-		}
-	}
-	return false;
+	return Spec && AbilityHasSlot(*Spec, Slot);
 }
 
 void UAuraAbilitySystemComponent::OnRep_ActivateAbilities()

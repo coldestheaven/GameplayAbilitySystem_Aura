@@ -233,7 +233,6 @@ void UAuraAttributeSet::HandleIncomingDamage(const FEffectProperties& Props)
 			ICombatInterface* CombatInterface = Cast<ICombatInterface>(Props.TargetAvatarActor);
 			if (CombatInterface)
 			{
-				FVector Impulse = UAuraEffectContextLibrary::GetDeathImpulse(Props.EffectContextHandle);
 				CombatInterface->Die(UAuraEffectContextLibrary::GetDeathImpulse(Props.EffectContextHandle));
 			}
 			// 发送 XP 事件给击杀者
