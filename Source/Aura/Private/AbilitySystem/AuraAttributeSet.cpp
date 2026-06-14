@@ -13,7 +13,7 @@
 #include "AbilitySystem/AuraEffectContextLibrary.h"
 #include "Interaction/CombatInterface.h"
 #include "Interaction/PlayerInterface.h"
-#include "Player/AuraPlayerController.h"
+#include "Interaction/DamageTextDisplayInterface.h"
 
 UAuraAttributeSet::UAuraAttributeSet()
 {
@@ -485,19 +485,26 @@ void UAuraAttributeSet::ShowFloatingText(const FEffectProperties& Props, float D
 	if (!IsValid(Props.SourceCharacter) || !IsValid(Props.TargetCharacter)) return;
 	
 	// 如果来源和目标相同，不显示伤害数字（避免自己对自己造成伤害时显示）
-	if (Props.SourceCharacter != Props.TargetCharacter)
+	if (Props.SourceCharacter == Props.TargetCharacter) return;
+
+	// 通过接口调用（解耦）：
+	// 优先在来源 Controller 上显示，其次在目标 Controller 上显示
+	// AttributeSet 不再依赖 AAuraPlayerController 具体类型
+	auto TryDisplay = [&](AController* Controller) -> bool
 	{
-		// 优先在来源的 PlayerController 上显示（玩家攻击敌人时）
-		if(AAuraPlayerController* PC = Cast<AAuraPlayerController>(Props.SourceCharacter->Controller))
+		if (!Controller) return false;
+		if (Controller->Implements<UDamageTextDisplayInterface>())
 		{
-			PC->ShowDamageNumber(Damage, Props.TargetCharacter, bBlockedHit, bCriticalHit);
-			return;
+			IDamageTextDisplayInterface::Execute_DisplayDamageNumber(
+				Controller, Damage, Props.TargetCharacter, bBlockedHit, bCriticalHit);
+			return true;
 		}
-		// 否则在目标的 PlayerController 上显示（敌人攻击玩家时）
-		if(AAuraPlayerController* PC = Cast<AAuraPlayerController>(Props.TargetCharacter->Controller))
-		{
-			PC->ShowDamageNumber(Damage, Props.TargetCharacter, bBlockedHit, bCriticalHit);
-		}
+		return false;
+	};
+
+	if (!TryDisplay(Props.SourceCharacter->Controller))
+	{
+		TryDisplay(Props.TargetCharacter->Controller);
 	}
 }
 

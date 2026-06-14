@@ -28,6 +28,26 @@ UConfigurableAbility::UConfigurableAbility()
 }
 
 /**
+ * 技能授予回调（重写基类）
+ *
+ * 责任：委托配置数据资产预加载自身需要的软引用资产
+ * 业务代码不再感知 FSoftObjectPath / FStreamableManager / UAuraAssetManager
+ * 加载策略完全封装在 UAbilityConfigData 内部
+ */
+void UConfigurableAbility::OnGiveAbility(
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilitySpec& Spec)
+{
+	Super::OnGiveAbility(ActorInfo, Spec);
+
+	if (AbilityConfig)
+	{
+		// 委托数据资产自己完成预加载（内部调用 UAuraAssetManager）
+		AbilityConfig->PreloadVisualAssets();
+	}
+}
+
+/**
  * 激活技能（重写基类）
  * 
  * 实现流程：
@@ -79,9 +99,8 @@ void UConfigurableAbility::ActivateAbility(
 		bHasCachedTarget = true;
 	}
 	
-	// 播放施法视觉效果
-	if (AbilityConfig->CastVisualEffect.ParticleSystem.IsValid() || 
-		AbilityConfig->CastVisualEffect.Sound.IsValid())
+	// 播放施法视觉效果（有任何资产即触发）
+	if (AbilityConfig->CastVisualEffect.HasAnyAsset())
 	{
 		FVector Location = GetAvatarActorFromActorInfo()->GetActorLocation();
 		FRotator Rotation = GetAvatarActorFromActorInfo()->GetActorRotation();
@@ -298,9 +317,8 @@ void UConfigurableAbility::ExecuteSpawnProjectile(const FAbilityActionConfig& Ac
 		}
 	}
 	
-	// 播放视觉效果
-	if (ActionConfig.VisualEffect.ParticleSystem.IsValid() || 
-		ActionConfig.VisualEffect.Sound.IsValid())
+	// 播放视觉效果（有任何资产即触发）
+	if (ActionConfig.VisualEffect.HasAnyAsset())
 	{
 		PlayVisualEffect(ActionConfig.VisualEffect, SocketLocation, FRotator::ZeroRotator);
 	}
@@ -450,48 +468,29 @@ void UConfigurableAbility::ExecuteWaitForEvent(const FAbilityActionConfig& Actio
 
 void UConfigurableAbility::PlayVisualEffect(const FVisualEffectConfig& VisualConfig, const FVector& Location, const FRotator& Rotation)
 {
-	// 播放粒子效果
-	if (VisualConfig.ParticleSystem.IsValid())
+	// 播放粒子效果：委托配置结构体自身返回安全指针
+	// 业务代码无需关心 “是否已加载 / 如何同步加载兜底” 之类加载策略细节
+	if (UNiagaraSystem* ParticleSystem = VisualConfig.GetParticleSystemSafe())
 	{
-		UNiagaraSystem* ParticleSystem = VisualConfig.ParticleSystem.LoadSynchronous();
-		if (ParticleSystem)
-		{
-			FVector SpawnLocation = Location + VisualConfig.LocationOffset;
-			FRotator SpawnRotation = Rotation + VisualConfig.RotationOffset;
-			
-			if (VisualConfig.bAttachToCharacter)
-			{
-				// TODO: 实现附加到角色的逻辑
-				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-					GetWorld(),
-					ParticleSystem,
-					SpawnLocation,
-					SpawnRotation,
-					VisualConfig.Scale);
-			}
-			else
-			{
-				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-					GetWorld(),
-					ParticleSystem,
-					SpawnLocation,
-					SpawnRotation,
-					VisualConfig.Scale);
-			}
-		}
+		const FVector SpawnLocation = Location + VisualConfig.LocationOffset;
+		const FRotator SpawnRotation = Rotation + VisualConfig.RotationOffset;
+
+		// TODO: bAttachToCharacter 仅需在需要附加逻辑实现后区分处理
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			ParticleSystem,
+			SpawnLocation,
+			SpawnRotation,
+			VisualConfig.Scale);
 	}
-	
-	// 播放音效
-	if (VisualConfig.Sound.IsValid())
+
+	// 播放音效：同样委托配置结构体自身获取指针
+	if (USoundBase* Sound = VisualConfig.GetSoundSafe())
 	{
-		USoundBase* Sound = VisualConfig.Sound.LoadSynchronous();
-		if (Sound)
-		{
-			UGameplayStatics::PlaySoundAtLocation(
-				GetWorld(),
-				Sound,
-				Location + VisualConfig.LocationOffset);
-		}
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(),
+			Sound,
+			Location + VisualConfig.LocationOffset);
 	}
 }
 

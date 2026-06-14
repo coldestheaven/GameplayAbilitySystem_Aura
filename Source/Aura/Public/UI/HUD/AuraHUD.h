@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "Interaction/HUDOverlayInitializer.h"
+#include "UI/WidgetController/AuraWidgetController.h"
 #include "AuraHUD.generated.h"
 
 class UAttributeMenuWidgetController;
@@ -11,7 +13,6 @@ class UAttributeSet;
 class UAbilitySystemComponent;
 class UOverlayWidgetController;
 class UAuraUserWidget;
-struct FWidgetControllerParams;
 class USpellMenuWidgetController;
 
 /**
@@ -19,7 +20,7 @@ class USpellMenuWidgetController;
  *
  * 职责：
  * - 管理主 Overlay Widget（游戏内 HUD，显示生命值、法力值、技能栏等）
- * - 管理三个 WidgetController（Overlay、AttributeMenu、SpellMenu）
+ * - 通过统一注册表管理所有 WidgetController（Overlay、AttributeMenu、SpellMenu 等）
  * - 提供懒加载的 WidgetController 获取接口（首次调用时创建并初始化）
  * - 在玩家初始化完成后（InitOverlay）创建并显示主 HUD Widget
  *
@@ -28,13 +29,26 @@ class USpellMenuWidgetController;
  *   2. InitOverlay 创建 OverlayWidget 并设置其 WidgetController
  *   3. 各 WidgetController 通过 GetXxxWidgetController 懒加载获取
  *
+ * 架构（C1 重构 · 2026-06-14）：
+ * - WidgetController 实例统一存放在 ControllerInstances 注册表（TMap<UClass*, UAuraWidgetController*>）
+ * - 公开的 GetXxxWidgetController 接口保留签名兼容，内部转发到通用模板 GetWidgetController<T>
+ * - 添加新菜单类型：只需新增 ControllerClass 字段 + 一个 Get 接口（不再需要并列实例字段）
+ *
  * 注意：此类只在本地玩家的客户端上存在（HUD 不参与网络同步）
  */
 UCLASS()
-class AURA_API AAuraHUD : public AHUD
+class AURA_API AAuraHUD : public AHUD, public IHUDOverlayInitializer
 {
 	GENERATED_BODY()
 public:
+
+	//~ Begin IHUDOverlayInitializer
+	/**
+	 * 接口实现：转发到已有的 InitOverlay
+	 * 使 Character 能通过接口调用，避免依赖 AAuraHUD 具体类型
+	 */
+	virtual void InitOverlayHUD_Implementation(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS) override;
+	//~ End IHUDOverlayInitializer
 
 	/**
 	 * 获取 OverlayWidgetController（懒加载）
@@ -73,24 +87,51 @@ protected:
 
 private:
 	/**
-	 * 懒加载 WidgetController 的通用模板辅助函数
-	 * 若 Controller 为空则创建、初始化并绑定回调，否则直接返回缓存实例
-	 * @param Controller      缓存的控制器引用（TObjectPtr，首次调用后被填充）
-	 * @param ControllerClass 要创建的控制器类
-	 * @param WCParams        WidgetController 初始化参数
-	 * @return 已初始化的 WidgetController 实例
+	 * 通用 WidgetController 懒加载模板（C1 重构 · 2026-06-14）
+	 *
+	 * 实现：以「控制器类」为 Key 在注册表中查找；找不到则创建、初始化、绑定回调，并写入注册表
+	 *
+	 * 替代原 GetOrCreateWidgetController(TObjectPtr<T>&, TSubclassOf<T>, ...) 模板：
+	 * - 旧版要求每个控制器类型都有一个独立的 TObjectPtr 字段，新增菜单 = 新增字段 + 新增 Get 接口
+	 * - 新版统一存放在 TMap，新增菜单 = 新增 ControllerClass 字段 + 新增 Get 接口（不再增字段）
+	 *
+	 * @tparam T              要返回的具体 WidgetController 类型（必须继承 UAuraWidgetController）
+	 * @param  ControllerClass 控制器类引用（蓝图 Detail 面板中配置的 TSubclassOf<T>）
+	 * @param  WCParams        WidgetController 初始化参数
+	 * @return 已初始化的 WidgetController 实例（创建失败返回 nullptr）
+	 *
+	 * 注意：
+	 * - 调用前必须确保 ControllerClass 在蓝图中已配置
+	 * - 注册表 Key 用「控制器类对象」而非具体派生类型，避免 TMap<TSubclassOf<T>, ...> 的类型擦除问题
 	 */
 	template<typename T>
-	T* GetOrCreateWidgetController(TObjectPtr<T>& Controller, TSubclassOf<T> ControllerClass, const FWidgetControllerParams& WCParams)
+	T* GetWidgetController(TSubclassOf<T> ControllerClass, const FWidgetControllerParams& WCParams)
 	{
-		if (Controller == nullptr)
+		if (ControllerClass == nullptr) return nullptr;
+
+		if (TObjectPtr<UAuraWidgetController>* Found = ControllerInstances.Find(ControllerClass))
 		{
-			Controller = NewObject<T>(this, ControllerClass);
-			Controller->SetWidgetControllerParams(WCParams);
-			Controller->BindCallbacksToDependencies();
+			return Cast<T>(Found->Get());
 		}
-		return Controller;
+
+		T* NewController = NewObject<T>(this, ControllerClass);
+		NewController->SetWidgetControllerParams(WCParams);
+		NewController->BindCallbacksToDependencies();
+		ControllerInstances.Add(ControllerClass, NewController);
+		return NewController;
 	}
+
+	/**
+	 * WidgetController 实例注册表（C1 重构 · 2026-06-14）
+	 *
+	 * Key  : 具体控制器类对象（与 ControllerClass 字段一致）
+	 * Value: 该类的唯一实例（懒加载创建后缓存）
+	 *
+	 * 使用 UClass* 作为 Key 而非 TSubclassOf<T>：避免模板类型擦除带来的 TMap 复杂度
+	 * UPROPERTY 让所有 Value 受 GC 管理，无需手动释放
+	 */
+	UPROPERTY()
+	TMap<TObjectPtr<UClass>, TObjectPtr<UAuraWidgetController>> ControllerInstances;
 
 	/** 主 Overlay Widget 实例（游戏内 HUD，显示生命值、法力值等） */
 	UPROPERTY()
@@ -103,20 +144,13 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UAuraUserWidget> OverlayWidgetClass;
 
-	/** OverlayWidgetController 实例（懒加载缓存） */
-	UPROPERTY()
-	TObjectPtr<UOverlayWidgetController> OverlayWidgetController;
-
 	/**
 	 * OverlayWidgetController 类（在 Details 面板中指定）
 	 * 必须是 UOverlayWidgetController 的子类
+	 * （实例统一存放在 ControllerInstances，蓝图配置零影响）
 	 */
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UOverlayWidgetController> OverlayWidgetControllerClass;
-
-	/** AttributeMenuWidgetController 实例（懒加载缓存） */
-	UPROPERTY()
-	TObjectPtr<UAttributeMenuWidgetController> AttributeMenuWidgetController;
 
 	/**
 	 * AttributeMenuWidgetController 类（在 Details 面板中指定）
@@ -124,10 +158,6 @@ private:
 	 */
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UAttributeMenuWidgetController> AttributeMenuWidgetControllerClass;
-
-	/** SpellMenuWidgetController 实例（懒加载缓存） */
-	UPROPERTY()
-	TObjectPtr<USpellMenuWidgetController> SpellMenuWidgetController;
 
 	/**
 	 * SpellMenuWidgetController 类（在 Details 面板中指定）

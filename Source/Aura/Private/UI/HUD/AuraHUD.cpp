@@ -10,17 +10,18 @@
 
 UOverlayWidgetController* AAuraHUD::GetOverlayWidgetController(const FWidgetControllerParams& WCParams)
 {
-	return GetOrCreateWidgetController(OverlayWidgetController, OverlayWidgetControllerClass, WCParams);
+	// C1 重构 · 2026-06-14：转发到统一的注册表模板，消除并列字段
+	return GetWidgetController<UOverlayWidgetController>(OverlayWidgetControllerClass, WCParams);
 }
 
 UAttributeMenuWidgetController* AAuraHUD::GetAttributeMenuWidgetController(const FWidgetControllerParams& WCParams)
 {
-	return GetOrCreateWidgetController(AttributeMenuWidgetController, AttributeMenuWidgetControllerClass, WCParams);
+	return GetWidgetController<UAttributeMenuWidgetController>(AttributeMenuWidgetControllerClass, WCParams);
 }
 
 USpellMenuWidgetController* AAuraHUD::GetSpellMenuWidgetController(const FWidgetControllerParams& WCParams)
 {
-	return GetOrCreateWidgetController(SpellMenuWidgetController, SpellMenuWidgetControllerClass, WCParams);
+	return GetWidgetController<USpellMenuWidgetController>(SpellMenuWidgetControllerClass, WCParams);
 }
 
 /**
@@ -62,5 +63,14 @@ void AAuraHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySyst
 	OverlayWidget->SetWidgetController(WidgetController);
 	WidgetController->BroadcastInitialValues();
 	Widget->AddToViewport();
+}
+
+/**
+ * IHUDOverlayInitializer 实现：转发到已有的 InitOverlay
+ * 让 Character 能通过接口调用，无需 Cast 到 AAuraHUD 具体类型
+ */
+void AAuraHUD::InitOverlayHUD_Implementation(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS)
+{
+	InitOverlay(PC, PS, ASC, AS);
 }
 

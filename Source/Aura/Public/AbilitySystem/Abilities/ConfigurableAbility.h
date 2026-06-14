@@ -61,6 +61,16 @@ public:
 	
 protected:
 	/**
+	 * 技能授予回调（重写基类）
+	 * 在技能被赋予到 ASC 时调用，是预加载技能软引用资产（粒子、音效）的最佳时机
+	 * 通过 UAuraAssetManager 异步加载，避免技能首次激活时 LoadSynchronous 阻塞游戏线程
+	 */
+	virtual void OnGiveAbility(
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilitySpec& Spec
+	) override;
+
+	/**
 	 * 技能激活（重写基类）
 	 * 初始化动作索引，获取鼠标目标位置，开始执行动作序列
 	 */

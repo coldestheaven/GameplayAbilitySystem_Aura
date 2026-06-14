@@ -189,6 +189,24 @@ UAbilityInfo* UAuraAbilitySystemLibrary::GetAbilityInfo(const UObject* WorldCont
 	return AuraGameMode->AbilityInfo;
 }
 
+/**
+ * 获取 AttributeInfo 数据资产（C1 重构新增 · 2026-06-14）
+ *
+ * 实现：从当前 World 对应的 AAuraGameModeBase 读取 AttributeInfo 字段
+ *
+ * 失败处理：
+ * - 非 AuraGameMode（如客户端独立测试场景）→ 返回 nullptr
+ * - GameMode 上未配置该字段 → 返回 nullptr（蓝图侧可后续补配置）
+ *
+ * 调用方应自行判空，避免空指针访问
+ */
+UAttributeInfo* UAuraAbilitySystemLibrary::GetAttributeInfo(const UObject* WorldContextObject)
+{
+	const AAuraGameModeBase* AuraGameMode = Cast<AAuraGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
+	if (AuraGameMode == nullptr) return nullptr;
+	return AuraGameMode->AttributeInfo;
+}
+
 ULootTiers* UAuraAbilitySystemLibrary::GetLootTiers(const UObject* WorldContextObject)
 {
 	const AAuraGameModeBase* AuraGameMode = Cast<AAuraGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));

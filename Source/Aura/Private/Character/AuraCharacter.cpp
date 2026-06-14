@@ -8,7 +8,6 @@
 #include "AbilitySystem/AuraAbilitySystemComponent.h"
 #include "AbilitySystem/Data/LevelUpInfo.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Player/AuraPlayerController.h"
 #include "Player/AuraPlayerState.h"
 #include "NiagaraComponent.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
@@ -18,9 +17,11 @@
 #include "Camera/CameraComponent.h"
 #include "Game/AuraGameModeBase.h"
 #include "Game/LoadScreenSaveGame.h"
+#include "GameFramework/HUD.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "UI/HUD/AuraHUD.h"
+#include "Interaction/HUDOverlayInitializer.h"
+#include "Interaction/MagicCircleController.h"
 
 /**
  * 构造函数：初始化玩家角色的摄像机、移动和升级特效
@@ -311,19 +312,20 @@ int32 AAuraCharacter::GetSpellPoints_Implementation() const
 
 void AAuraCharacter::ShowMagicCircle_Implementation(UMaterialInterface* DecalMaterial)
 {
-	if (AAuraPlayerController* AuraPlayerController = Cast<AAuraPlayerController>(GetController()))
+	// 通过接口调用，不再依赖 AAuraPlayerController 具体类型
+	AController* Ctrl = GetController();
+	if (Ctrl && Ctrl->Implements<UMagicCircleController>())
 	{
-		AuraPlayerController->ShowMagicCircle(DecalMaterial);
-		AuraPlayerController->bShowMouseCursor = false;
+		IMagicCircleController::Execute_ShowMagicCircleUI(Ctrl, DecalMaterial);
 	}
 }
 
 void AAuraCharacter::HideMagicCircle_Implementation()
 {
-	if (AAuraPlayerController* AuraPlayerController = Cast<AAuraPlayerController>(GetController()))
+	AController* Ctrl = GetController();
+	if (Ctrl && Ctrl->Implements<UMagicCircleController>())
 	{
-		AuraPlayerController->HideMagicCircle();
-		AuraPlayerController->bShowMouseCursor = true;
+		IMagicCircleController::Execute_HideMagicCircleUI(Ctrl);
 	}
 }
 
@@ -536,11 +538,16 @@ void AAuraCharacter::InitAbilityActorInfo()
 	OnAscRegistered.Broadcast(AbilitySystemComponent);
 	AbilitySystemComponent->RegisterGameplayTagEvent(FAuraGameplayTags::Get().Debuff_Stun, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AAuraCharacter::StunTagChanged);
 
-	if (AAuraPlayerController* AuraPlayerController = Cast<AAuraPlayerController>(GetController()))
+	// 通过接口调用 HUD 初始化，不再依赖 AAuraPlayerController / AAuraHUD 具体类型
+	if (AController* Ctrl = GetController())
 	{
-		if (AAuraHUD* AuraHUD = Cast<AAuraHUD>(AuraPlayerController->GetHUD()))
+		if (APlayerController* PC = Cast<APlayerController>(Ctrl))
 		{
-			AuraHUD->InitOverlay(AuraPlayerController, AuraPS, AbilitySystemComponent, AttributeSet);
+			AHUD* HUD = PC->GetHUD();
+			if (HUD && HUD->Implements<UHUDOverlayInitializer>())
+			{
+				IHUDOverlayInitializer::Execute_InitOverlayHUD(HUD, PC, AuraPS, AbilitySystemComponent, AttributeSet);
+			}
 		}
 	}
 }

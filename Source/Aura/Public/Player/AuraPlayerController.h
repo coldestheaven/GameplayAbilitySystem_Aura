@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
+#include "Interaction/DamageTextDisplayInterface.h"
+#include "Interaction/MagicCircleController.h"
 #include "AuraPlayerController.generated.h"
 
 class IHighlightInterface;
@@ -45,11 +47,32 @@ enum class ETargetingStatus : uint8
  *   释放按键 → AbilityInputTagReleased → ASC.AbilityInputTagReleased
  */
 UCLASS()
-class AURA_API AAuraPlayerController : public APlayerController
+class AURA_API AAuraPlayerController : public APlayerController, public IDamageTextDisplayInterface, public IMagicCircleController
 {
 	GENERATED_BODY()
 public:
 	AAuraPlayerController();
+
+	//~ Begin IDamageTextDisplayInterface
+	/**
+	 * 接口实现：转发给原有的 Client RPC ShowDamageNumber
+	 * 使 AttributeSet 能通过接口调用，而无需 Cast 到具体 Controller 类型
+	 */
+	virtual void DisplayDamageNumber_Implementation(float DamageAmount, ACharacter* TargetCharacter, bool bBlockedHit, bool bCriticalHit) override;
+	//~ End IDamageTextDisplayInterface
+
+	//~ Begin IMagicCircleController
+	/**
+	 * 接口实现：转发到已有的 ShowMagicCircle，并隐藏鼠标光标
+	 * 使 Character 能通过接口调用，避免 Cast 到 AAuraPlayerController
+	 */
+	virtual void ShowMagicCircleUI_Implementation(UMaterialInterface* DecalMaterial) override;
+
+	/**
+	 * 接口实现：转发到已有的 HideMagicCircle，并恢复鼠标光标
+	 */
+	virtual void HideMagicCircleUI_Implementation() override;
+	//~ End IMagicCircleController
 
 	/** 每帧更新：执行光标追踪、自动寻路移动、魔法圆圈位置更新 */
 	virtual void PlayerTick(float DeltaTime) override;

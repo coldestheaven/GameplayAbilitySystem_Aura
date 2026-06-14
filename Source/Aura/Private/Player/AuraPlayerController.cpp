@@ -136,6 +136,35 @@ void AAuraPlayerController::ShowDamageNumber_Implementation(float DamageAmount, 
 }
 
 /**
+ * IDamageTextDisplayInterface 实现：
+ * 让上层（AttributeSet）通过接口调用，无需依赖 AAuraPlayerController 具体类型
+ * 内部直接转发到原有的 Client RPC ShowDamageNumber，保留所有网络行为
+ */
+void AAuraPlayerController::DisplayDamageNumber_Implementation(float DamageAmount, ACharacter* TargetCharacter, bool bBlockedHit, bool bCriticalHit)
+{
+	ShowDamageNumber(DamageAmount, TargetCharacter, bBlockedHit, bCriticalHit);
+}
+
+/**
+ * IMagicCircleController 实现：转发到已有的 ShowMagicCircle，并隐藏鼠标光标
+ * 让 Character 通过接口调用，无需 Cast 到 AAuraPlayerController 具体类型
+ */
+void AAuraPlayerController::ShowMagicCircleUI_Implementation(UMaterialInterface* DecalMaterial)
+{
+	ShowMagicCircle(DecalMaterial);
+	bShowMouseCursor = false;
+}
+
+/**
+ * IMagicCircleController 实现：转发到已有的 HideMagicCircle，并恢复鼠标光标
+ */
+void AAuraPlayerController::HideMagicCircleUI_Implementation()
+{
+	HideMagicCircle();
+	bShowMouseCursor = true;
+}
+
+/**
  * 自动寻路移动
  * 
  * 实现流程：

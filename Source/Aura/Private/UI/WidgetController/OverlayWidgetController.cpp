@@ -64,37 +64,12 @@ void UOverlayWidgetController::BindCallbacksToDependencies()
 		}
 	);
 	
-	// 绑定生命值变化委托
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(GetAuraAS()->GetHealthAttribute()).AddLambda(
-			[this](const FOnAttributeChangeData& Data)
-			{
-				OnHealthChanged.Broadcast(Data.NewValue);
-			}
-		);
-
-	// 绑定最大生命值变化委托
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(GetAuraAS()->GetMaxHealthAttribute()).AddLambda(
-			[this](const FOnAttributeChangeData& Data)
-			{
-				OnMaxHealthChanged.Broadcast(Data.NewValue);
-			}
-		);
-
-	// 绑定法力值变化委托
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(GetAuraAS()->GetManaAttribute()).AddLambda(
-			[this](const FOnAttributeChangeData& Data)
-			{
-				OnManaChanged.Broadcast(Data.NewValue);
-			}
-		);
-
-	// 绑定最大法力值变化委托
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(GetAuraAS()->GetMaxManaAttribute()).AddLambda(
-			[this](const FOnAttributeChangeData& Data)
-			{
-				OnMaxManaChanged.Broadcast(Data.NewValue);
-			}
-		);
+	// 绑定属性变化委托（C1 重构 · 2026-06-14：折叠 4 段重复 Lambda 为基类模板调用）
+	// 模板内部统一执行：ASC->GetGameplayAttributeValueChangeDelegate(Attr).AddLambda(...Broadcast(NewValue))
+	BindAttributeValueChange(GetAuraAS()->GetHealthAttribute(),    OnHealthChanged);
+	BindAttributeValueChange(GetAuraAS()->GetMaxHealthAttribute(), OnMaxHealthChanged);
+	BindAttributeValueChange(GetAuraAS()->GetManaAttribute(),      OnManaChanged);
+	BindAttributeValueChange(GetAuraAS()->GetMaxManaAttribute(),   OnMaxManaChanged);
 
 	// 绑定技能和消息相关委托
 	if (GetAuraASC())

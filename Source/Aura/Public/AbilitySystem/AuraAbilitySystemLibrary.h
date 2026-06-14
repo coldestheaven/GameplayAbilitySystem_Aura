@@ -13,6 +13,7 @@
 class ULootTiers;
 class ULoadScreenSaveGame;
 class UAbilityInfo;
+class UAttributeInfo;
 class USpellMenuWidgetController;
 class UAbilitySystemComponent;
 class UAttributeMenuWidgetController;
@@ -130,6 +131,22 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="AuraAbilitySystemLibrary|CharacterClassDefaults")
 	static UAbilityInfo* GetAbilityInfo(const UObject* WorldContextObject);
+
+	/**
+	 * 获取 AttributeInfo 数据资产（C1 重构新增 · 2026-06-14）
+	 *
+	 * 统一访问入口：所有需要属性 UI 信息（名称、描述、图标）的代码可走此函数，
+	 * 内部从 AAuraGameModeBase::AttributeInfo 取值，避免散落在各 WidgetController 中
+	 *
+	 * 兼容性：
+	 * - 不影响 UAttributeMenuWidgetController::AttributeInfo 现有用法
+	 * - 旧蓝图配置完全保留
+	 *
+	 * @param WorldContextObject 世界上下文对象
+	 * @return AttributeInfo 数据资产指针，未配置时返回 nullptr
+	 */
+	UFUNCTION(BlueprintCallable, Category="AuraAbilitySystemLibrary|CharacterClassDefaults")
+	static UAttributeInfo* GetAttributeInfo(const UObject* WorldContextObject);
 
 	/**
 	 * 获取 LootTiers 数据资产（从 GameMode 获取，用于战利品掉落计算）

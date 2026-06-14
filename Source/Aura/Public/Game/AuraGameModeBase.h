@@ -11,6 +11,7 @@ class ULoadScreenSaveGame;
 class USaveGame;
 class UMVVM_LoadSlot;
 class UAbilityInfo;
+class UAttributeInfo;
 class UCharacterClassInfo;
 
 /**
@@ -48,6 +49,20 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "Ability Info")
 	TObjectPtr<UAbilityInfo> AbilityInfo;
+
+	/**
+	 * 属性信息数据资产（C1 重构新增 · 2026-06-14）
+	 *
+	 * 定义所有玩家属性（力量/智力/韧性/活力等）的显示名称、描述文本、UI 图标等
+	 * 提供给 UAuraAbilitySystemLibrary::GetAttributeInfo 作为统一访问入口的数据源
+	 *
+	 * 兼容性说明：
+	 * - 此字段为纯新增字段，蓝图 BP_AuraGameMode 现有配置完全不受影响
+	 * - 旧的 UAttributeMenuWidgetController::AttributeInfo 字段仍然保留，不强制迁移
+	 * - 新增/外部代码建议优先走 Library 入口，便于后续渐进式收拢
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Attribute Info")
+	TObjectPtr<UAttributeInfo> AttributeInfo;
 
 	/**
 	 * 战利品等级数据资产

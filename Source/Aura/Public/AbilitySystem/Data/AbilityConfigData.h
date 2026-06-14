@@ -161,6 +161,11 @@ struct FAOEConfig
  * 视觉效果配置结构体
  * 定义技能的粒子特效和音效参数
  * 可用于施法时特效（CastVisualEffect）和命中时特效（ImpactVisualEffect）
+ *
+ * 自封装资源加载：
+ * - CollectSoftPaths：把内部所有软引用追加到外部数组，业务代码不感知字段名
+ * - GetParticleSystemSafe / GetSoundSafe：取指针时若未加载会自动回退同步加载
+ * - HasAnyAsset：是否配置了任何资产，用于跳过空配置
  */
 USTRUCT(BlueprintType)
 struct FVisualEffectConfig
@@ -194,6 +199,36 @@ struct FVisualEffectConfig
 	/** 特效缩放（1.0 为原始大小） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
 	FVector Scale = FVector::OneVector;
+
+	/* ───────── 资源加载封装 API（业务代码无需直接访问字段） ───────── */
+
+	/** 是否配置了至少一个资产（粒子或音效） */
+	FORCEINLINE bool HasAnyAsset() const
+	{
+		return !ParticleSystem.IsNull() || !Sound.IsNull();
+	}
+
+	/**
+	 * 把本结构体内所有软引用资产路径追加到外部数组
+	 * 用于在 OnGiveAbility 阶段批量预加载
+	 */
+	void CollectSoftPaths(TArray<FSoftObjectPath>& OutPaths) const
+	{
+		if (!ParticleSystem.IsNull()) OutPaths.AddUnique(ParticleSystem.ToSoftObjectPath());
+		if (!Sound.IsNull()) OutPaths.AddUnique(Sound.ToSoftObjectPath());
+	}
+
+	/**
+	 * 安全获取粒子系统指针：优先使用已加载缓存，未加载时同步加载兜底
+	 * @return 资产指针（路径未配置或加载失败时返回 nullptr）
+	 */
+	UNiagaraSystem* GetParticleSystemSafe() const;
+
+	/**
+	 * 安全获取音效指针：优先使用已加载缓存，未加载时同步加载兜底
+	 * @return 资产指针（路径未配置或加载失败时返回 nullptr）
+	 */
+	USoundBase* GetSoundSafe() const;
 };
 
 /**
@@ -324,4 +359,28 @@ class AURA_API UAbilityConfigData : public UPrimaryDataAsset
 	/** 是否可以被打断（true 时受击或眩晕会中断施法） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	bool bCanBeInterrupted = true;
+
+	/* ───────── 资源加载封装 API ───────── */
+
+	/**
+	 * 收集本数据资产中所有视觉效果引用的软资产路径
+	 * 包括 CastVisualEffect、ImpactVisualEffect 以及每个 Action 的 VisualEffect
+	 * @param OutPaths 输出数组（追加，不清空）
+	 */
+	void CollectVisualSoftPaths(TArray<FSoftObjectPath>& OutPaths) const
+	{
+		CastVisualEffect.CollectSoftPaths(OutPaths);
+		ImpactVisualEffect.CollectSoftPaths(OutPaths);
+		for (const FAbilityActionConfig& Action : Actions)
+		{
+			Action.VisualEffect.CollectSoftPaths(OutPaths);
+		}
+	}
+
+	/**
+	 * 异步预加载本数据资产引用的所有视觉效果资产
+	 * 内部使用 UAuraAssetManager 的 StreamableManager，业务代码无需感知
+	 * 推荐在 UConfigurableAbility::OnGiveAbility 中调用一次
+	 */
+	void PreloadVisualAssets() const;
 };
