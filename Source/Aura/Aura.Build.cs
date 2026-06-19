@@ -8,7 +8,9 @@ public class Aura : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities", "AuraCore" });
+		// UMG / ModelViewViewModel：项目中存在 UUserWidget 子类与 UMVVMViewModelBase 子类
+		// UE5.8 模块依赖收紧后，必须在 Build.cs 中显式声明，否则可能链接失败或 IWYU 报错
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities", "AuraCore", "UMG", "ModelViewViewModel" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayTags", "GameplayTasks", "NavigationSystem", "Niagara", "AIModule" });
 
