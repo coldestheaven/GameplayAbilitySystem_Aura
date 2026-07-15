@@ -438,4 +438,28 @@ void FAuraGameplayTags::InitializeNativeGameplayTags()
 		FName("GameplayCue.FireBlast"),
 		FString("FireBlast GameplayCue Tag")
 		);
+
+	/*
+	 * Parent / Wildcard Tags（用于 MatchesTag 层级匹配）
+	 * 注册为原生标签，确保 RequestGameplayTag 之前即可安全使用单例引用
+	 */
+	GameplayTags.Message = UGameplayTagsManager::Get().AddNativeGameplayTag(
+		FName("Message"),
+		FString("Parent tag for message widgets (Message.*)")
+		);
+
+	GameplayTags.InputTag = UGameplayTagsManager::Get().AddNativeGameplayTag(
+		FName("InputTag"),
+		FString("Parent tag for input tags (InputTag.*)")
+		);
+
+	GameplayTags.Abilities = UGameplayTagsManager::Get().AddNativeGameplayTag(
+		FName("Abilities"),
+		FString("Parent tag for abilities (Abilities.*)")
+		);
+
+	GameplayTags.Abilities_Status = UGameplayTagsManager::Get().AddNativeGameplayTag(
+		FName("Abilities.Status"),
+		FString("Parent tag for ability status (Abilities.Status.*)")
+		);
 }

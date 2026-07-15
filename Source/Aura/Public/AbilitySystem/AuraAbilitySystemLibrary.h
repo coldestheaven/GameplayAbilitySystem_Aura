@@ -157,6 +157,9 @@ public:
 	static ULootTiers* GetLootTiers(const UObject* WorldContextObject);
 	
 	/* ======================== 游戏机制工具 ======================== */
+	/* 注意：以下游戏机制函数均为「兼容转发」，实际实现位于 UAuraGameplayMechanicsLibrary
+	   （该库为游戏机制的权威实现）。本库保留转发以维持既有 C++/蓝图调用点不变，
+	   避免重复维护两份相同逻辑。 */
 	
 	/**
 	 * 获取指定球形范围内所有存活的玩家（实现了 ICombatInterface 且未死亡）

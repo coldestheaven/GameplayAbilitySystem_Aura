@@ -158,6 +158,12 @@ public:
 	/** 火焰爆炸 GameplayCue 标签（触发火焰爆炸的视觉/音效） */
 	FGameplayTag GameplayCue_FireBlast;
 
+	/* ======================== 父/通配标签（用于 MatchesTag 层级匹配，避免硬编码字符串） ======================== */
+	FGameplayTag Message;           // 消息父标签（Message.*，如 Message.HealthPotion）
+	FGameplayTag InputTag;          // 输入父标签（InputTag.*，用于判断技能是否绑定输入槽）
+	FGameplayTag Abilities;         // 技能父标签（Abilities.*）
+	FGameplayTag Abilities_Status;  // 技能状态父标签（Abilities.Status.*）
+
 private:
 	/** 单例实例（在 InitializeNativeGameplayTags 中初始化） */
 	static FAuraGameplayTags GameplayTags;

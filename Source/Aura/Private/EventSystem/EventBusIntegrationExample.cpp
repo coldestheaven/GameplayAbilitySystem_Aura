@@ -2,6 +2,7 @@
 
 #include "EventSystem/EventBusIntegrationExample.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
+#include "GameplayTags/AuraGameplayTags.h"
 
 /**
  * 构造函数：初始化事件总线集成示例
@@ -152,7 +153,7 @@ void AEventBusIntegrationExample::PublishTestEvents()
 
 	// 测试：发布属性变化事件
 	FAttributeChangedEvent AttrEvent;
-	AttrEvent.AttributeTag = FGameplayTag::RequestGameplayTag(FName("Attributes.Vital.Health"));
+	AttrEvent.AttributeTag = FAuraGameplayTags::Get().Attributes_Secondary_MaxHealth;
 	AttrEvent.OldValue = 100.f;
 	AttrEvent.NewValue = 80.f;
 	AttrEvent.Instigator = this;
@@ -161,7 +162,7 @@ void AEventBusIntegrationExample::PublishTestEvents()
 
 	// 测试：发布技能激活事件
 	FAbilityActivatedEvent AbilityEvent;
-	AbilityEvent.AbilityTag = FGameplayTag::RequestGameplayTag(FName("Abilities.Fire.FireBolt"));
+	AbilityEvent.AbilityTag = FAuraGameplayTags::Get().Abilities_Fire_FireBolt;
 	AbilityEvent.Instigator = this;
 	AbilityEvent.Target = nullptr;
 	AbilityEvent.Timestamp = GetWorld()->GetTimeSeconds();

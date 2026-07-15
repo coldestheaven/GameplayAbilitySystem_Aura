@@ -96,7 +96,7 @@ void UOverlayWidgetController::BindCallbacksToDependencies()
 					// 检查标签是否匹配 "Message" 父标签
 					// 例如：Tag = "Message.HealthPotion"
 					// "Message.HealthPotion".MatchesTag("Message") 返回 True
-					FGameplayTag MessageTag = FGameplayTag::RequestGameplayTag(FName("Message"));
+					const FGameplayTag& MessageTag = FAuraGameplayTags::Get().Message;
 					if (Tag.MatchesTag(MessageTag))
 					{
 						const FUIWidgetRow* Row = GetDataTableRowByTag<FUIWidgetRow>(MessageWidgetDataTable, Tag);

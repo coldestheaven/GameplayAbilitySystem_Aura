@@ -28,10 +28,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // 内部辅助：从标签容器中查找第一个匹配指定父标签的子标签
 // 消除 GetAbilityTagFromSpec / GetInputTagFromSpec / GetStatusFromSpec 的重复遍历逻辑
+// 直接接收父标签 FGameplayTag（来自 FAuraGameplayTags 单例），避免冗余的 RequestGameplayTag 查询
 // ─────────────────────────────────────────────────────────────────────────────
-static FGameplayTag FindFirstTagMatchingParent(const FGameplayTagContainer& Tags, const FName& ParentTagName)
+static FGameplayTag FindFirstTagMatchingParent(const FGameplayTagContainer& Tags, const FGameplayTag& ParentTag)
 {
-	const FGameplayTag ParentTag = FGameplayTag::RequestGameplayTag(ParentTagName);
 	for (const FGameplayTag& Tag : Tags)
 	{
 		if (Tag.MatchesTag(ParentTag))
@@ -297,19 +297,19 @@ FGameplayTag UAuraAbilitySystemComponent::GetAbilityTagFromSpec(const FGameplayA
 {
 	if (AbilitySpec.Ability)
 	{
-		return FindFirstTagMatchingParent(AbilitySpec.Ability.Get()->AbilityTags, FName("Abilities"));
+		return FindFirstTagMatchingParent(AbilitySpec.Ability.Get()->AbilityTags, FAuraGameplayTags::Get().Abilities);
 	}
 	return FGameplayTag();
 }
 
 FGameplayTag UAuraAbilitySystemComponent::GetInputTagFromSpec(const FGameplayAbilitySpec& AbilitySpec)
 {
-	return FindFirstTagMatchingParent(AbilitySpec.GetDynamicSpecSourceTags(), FName("InputTag"));
+	return FindFirstTagMatchingParent(AbilitySpec.GetDynamicSpecSourceTags(), FAuraGameplayTags::Get().InputTag);
 }
 
 FGameplayTag UAuraAbilitySystemComponent::GetStatusFromSpec(const FGameplayAbilitySpec& AbilitySpec)
 {
-	return FindFirstTagMatchingParent(AbilitySpec.GetDynamicSpecSourceTags(), FName("Abilities.Status"));
+	return FindFirstTagMatchingParent(AbilitySpec.GetDynamicSpecSourceTags(), FAuraGameplayTags::Get().Abilities_Status);
 }
 
 FGameplayTag UAuraAbilitySystemComponent::GetStatusFromAbilityTag(const FGameplayTag& AbilityTag)
@@ -350,7 +350,7 @@ bool UAuraAbilitySystemComponent::AbilityHasSlot(const FGameplayAbilitySpec& Spe
 
 bool UAuraAbilitySystemComponent::AbilityHasAnySlot(const FGameplayAbilitySpec& Spec)
 {
-	return Spec.GetDynamicSpecSourceTags().HasTag(FGameplayTag::RequestGameplayTag(FName("InputTag")));
+	return Spec.GetDynamicSpecSourceTags().HasTag(FAuraGameplayTags::Get().InputTag);
 }
 
 FGameplayAbilitySpec* UAuraAbilitySystemComponent::GetSpecWithSlot(const FGameplayTag& Slot)
