@@ -76,6 +76,7 @@ float UMMC_MaxHealth::CalculateBaseMagnitude_Implementation(const FGameplayEffec
 		PlayerLevel = ICombatInterface::Execute_GetPlayerLevel(Spec.GetContext().GetSourceObject());
 	}
 
-	// 计算最大生命值：80 + 2.5 * Vigor + 10 * Level
-	return 80.f + 2.5f * Vigor + 10.f * PlayerLevel;
+	// 计算最大生命值：BaseValue + VigorCoefficient * Vigor + LevelCoefficient * Level
+	// 系数已数据化（EditDefaultsOnly），可在蓝图 MMC 子类的默认值中调整
+	return BaseValue + VigorCoefficient * Vigor + LevelCoefficient * PlayerLevel;
 }

@@ -5,6 +5,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BTFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "AuraFactionTypes.h"
 
 /**
  * 每帧更新节点（BTService 的核心函数）
@@ -40,7 +41,7 @@ void UBTService_FindNearestPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, u
 	APawn* OwningPawn = AIOwner->GetPawn();
 
 	// 确定目标标签（Player 找 Enemy，Enemy 找 Player）
-	const FName TargetTag = OwningPawn->ActorHasTag(FName("Player")) ? FName("Enemy") : FName("Player");
+	const FName TargetTag = OwningPawn->ActorHasTag(AuraFaction::Player()) ? AuraFaction::Enemy() : AuraFaction::Player();
 
 	// 获取所有带有目标标签的 Actor
 	TArray<AActor*> ActorsWithTag;

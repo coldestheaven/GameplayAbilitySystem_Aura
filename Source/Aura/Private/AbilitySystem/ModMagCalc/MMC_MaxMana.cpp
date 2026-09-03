@@ -76,6 +76,7 @@ float UMMC_MaxMana::CalculateBaseMagnitude_Implementation(const FGameplayEffectS
 		PlayerLevel = ICombatInterface::Execute_GetPlayerLevel(Spec.GetContext().GetSourceObject());
 	}
 	
-	// 计算最大法力值：50 + 2.5 * Intelligence + 15 * Level
-	return 50.f + 2.5f * Int + 15.f * PlayerLevel;
+	// 计算最大法力值：BaseValue + IntelligenceCoefficient * Intelligence + LevelCoefficient * Level
+	// 系数已数据化（EditDefaultsOnly），可在蓝图 MMC 子类的默认值中调整
+	return BaseValue + IntelligenceCoefficient * Int + LevelCoefficient * PlayerLevel;
 }

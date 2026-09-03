@@ -95,23 +95,7 @@ public:
 	void Publish(const TEvent& Event)
 	{
 		static_assert(TIsDerivedFrom<TEvent, FAuraEvent>::Value, "TEvent must derive from FAuraEvent");
-		
-		const FName EventName = TEvent::StaticStruct()->GetFName();
-		
-		if (EventHandlers.Contains(EventName))
-		{
-			UE_LOG(LogTemp, Verbose, TEXT("[EventBus] Publishing event: %s to %d handlers"), 
-				*EventName.ToString(), EventHandlers[EventName].Num());
-			
-			for (auto& Handler : EventHandlers[EventName])
-			{
-				Handler(&Event);
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Verbose, TEXT("[EventBus] No handlers for event: %s"), *EventName.ToString());
-		}
+		PublishInternal(TEvent::StaticStruct()->GetFName(), &Event);
 	}
 
 	/**
@@ -138,29 +122,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EventBus")
 	int32 GetSubscriptionCount(FName EventName) const;
 
-	/** 蓝图：发布属性变化事件 */
-	UFUNCTION(BlueprintCallable, Category = "EventBus|Events")
-	void PublishAttributeChanged(const FAttributeChangedEvent& Event);
+	/**
+	 * 蓝图：发布任意事件（万能入口，CustomThunk 通配符参数）
+	 *
+	 * 事件引脚为"任意结构体"通配符——传入任何派生自 FAuraEvent 的结构体即可发布，
+	 * 新增事件类型无需在本类添加任何代码（替代旧的逐类型 PublishXxx 包装）。
+	 *
+	 * 注意：此函数体不会被执行，蓝图调用经 execPublishEvent 自定义 thunk 路由
+	 * （提取实参结构体类型与地址后走 PublishInternal 统一路径）。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "EventBus|Events", CustomThunk, meta = (CustomStructureParam = "Event"))
+	void PublishEvent(const FAuraEvent& Event);
 
-	/** 蓝图：发布技能激活事件 */
-	UFUNCTION(BlueprintCallable, Category = "EventBus|Events")
-	void PublishAbilityActivated(const FAbilityActivatedEvent& Event);
-
-	/** 蓝图：发布伤害事件 */
-	UFUNCTION(BlueprintCallable, Category = "EventBus|Events")
-	void PublishDamage(const FAuraDamageEvent& Event);
-
-	/** 蓝图：发布经验值获得事件 */
-	UFUNCTION(BlueprintCallable, Category = "EventBus|Events")
-	void PublishXPGained(const FXPGainedEvent& Event);
-
-	/** 蓝图：发布等级提升事件 */
-	UFUNCTION(BlueprintCallable, Category = "EventBus|Events")
-	void PublishLevelUp(const FLevelUpEvent& Event);
-
-	/** 蓝图：发布角色死亡事件 */
-	UFUNCTION(BlueprintCallable, Category = "EventBus|Events")
-	void PublishCharacterDeath(const FCharacterDeathEvent& Event);
+	// 自定义 thunk：从蓝图虚拟机栈提取通配符结构体实参，校验 FAuraEvent 派生后统一发布
+	DECLARE_FUNCTION(execPublishEvent);
 
 	/**
 	 * 获取事件总线实例（静态便捷方法，蓝图纯函数）
@@ -171,6 +146,31 @@ public:
 	static UAuraEventBus* GetEventBus(const UObject* WorldContextObject);
 
 private:
+	/**
+	 * 类型擦除的统一发布路径（所有发布入口共用）
+	 * 遍历该事件类型的全部处理器并计数
+	 * @param EventName 事件结构体名（StaticStruct()->GetFName()）
+	 * @param EventData 事件数据地址（按结构体布局原样传给类型擦除的 Handler）
+	 */
+	void PublishInternal(FName EventName, const void* EventData)
+	{
+		if (EventHandlers.Contains(EventName))
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("[EventBus] Publishing event: %s to %d handlers"),
+				*EventName.ToString(), EventHandlers[EventName].Num());
+
+			for (auto& Handler : EventHandlers[EventName])
+			{
+				Handler(EventData);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("[EventBus] No handlers for event: %s"), *EventName.ToString());
+		}
+		TotalEventsPublished++;
+	}
+
 	/**
 	 * 事件处理器映射表
 	 * Key: 事件结构体名称（FName）

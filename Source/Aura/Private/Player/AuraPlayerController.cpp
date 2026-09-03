@@ -345,6 +345,7 @@ void AAuraPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)
 	{
 		return;
 	}
+	
 	if (InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
 	{
 		if (IsValid(ThisActor))
@@ -357,7 +358,11 @@ void AAuraPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)
 		}
 		bAutoRunning = false;
 	}
-	if (GetASC()) GetASC()->AbilityInputTagPressed(InputTag);
+	
+	if (GetASC())
+	{
+		GetASC()->AbilityInputTagPressed(InputTag);
+	}
 }
 
 /**
@@ -470,21 +475,27 @@ void AAuraPlayerController::AbilityInputTagHeld(FGameplayTag InputTag)
 	}
 	if (!InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
 	{
-		if (GetASC()) GetASC()->AbilityInputTagHeld(InputTag);
+		if (GetASC())
+		{
+			GetASC()->AbilityInputTagHeld(InputTag);
+		}
 		return;
 	}
 
 	// 左键按住：瞄准敌人或按住 Shift 时触发技能，否则直接移动
 	if (TargetingStatus == ETargetingStatus::TargetingEnemy || bShiftKeyDown)
 	{
-		if (GetASC()) GetASC()->AbilityInputTagHeld(InputTag);
+		if (GetASC())
+		{
+			GetASC()->AbilityInputTagHeld(InputTag);
+		}
 	}
 	else
 	{
 		// 累加按住时间（用于区分短按和长按）
 		FollowTime += GetWorld()->GetDeltaSeconds();
 		// 更新目标位置（跟随鼠标）
-		if (CursorHit.bBlockingHit) CachedDestination = CursorHit.ImpactPoint;
+		if (CursorHit.bBlockingHit){ CachedDestination = CursorHit.ImpactPoint;}
 
 		// 直接向目标方向移动（不等待寻路）
 		if (APawn* ControlledPawn = GetPawn())

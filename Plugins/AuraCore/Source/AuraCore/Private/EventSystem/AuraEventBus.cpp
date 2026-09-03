@@ -1,7 +1,10 @@
 // Copyright Druid Mechanics
+// UAuraEventBus：C++ 走 Publish<T>() 模板；蓝图走 PublishEvent 通配符节点（CustomThunk）。
+// 两条路径最终都汇入 PublishInternal（统一遍历 + 计数），新增事件类型零样板代码。
 
 #include "EventSystem/AuraEventBus.h"
 #include "Engine/GameInstance.h"
+#include "UObject/Stack.h"
 
 void UAuraEventBus::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -48,40 +51,52 @@ int32 UAuraEventBus::GetSubscriptionCount(FName EventName) const
 	return 0;
 }
 
-void UAuraEventBus::PublishAttributeChanged(const FAttributeChangedEvent& Event)
+void UAuraEventBus::PublishEvent(const FAuraEvent& Event)
 {
-	Publish(Event);
-	TotalEventsPublished++;
+	// 不会被执行：蓝图调用走 execPublishEvent 自定义 thunk。
+	// 防御性兜底：若被 C++ 以基类引用直接调用，按基类名发布（派生数据经引用切片仍完整，
+	// 但订阅方以派生布局读取，故此处仅警告提示调用方改用 Publish<派生类型>）。
+	UE_LOG(LogTemp, Warning, TEXT("[EventBus] PublishEvent should be called from Blueprint (wildcard node); use Publish<T>() in C++."));
+	PublishInternal(FAuraEvent::StaticStruct()->GetFName(), &Event);
 }
 
-void UAuraEventBus::PublishAbilityActivated(const FAbilityActivatedEvent& Event)
+// 自定义 thunk：从蓝图虚拟机栈提取通配符结构体实参
+// （CustomStructureParam 让蓝图侧"事件"引脚可接任意结构体，此处拿到其实际类型与地址）
+DEFINE_FUNCTION(UAuraEventBus::execPublishEvent)
 {
-	Publish(Event);
-	TotalEventsPublished++;
-}
+	Stack.MostRecentProperty = nullptr;
+	Stack.StepCompiledIn<FStructProperty>(nullptr);
+	const FStructProperty* StructProperty = CastField<FStructProperty>(Stack.MostRecentProperty);
+	void* StructData = Stack.MostRecentPropertyAddress;
+	P_FINISH;
+	P_NATIVE_BEGIN;
+	if (StructProperty && StructData)
+	{
+		const UScriptStruct* ScriptStruct = StructProperty->Struct;
 
-void UAuraEventBus::PublishDamage(const FAuraDamageEvent& Event)
-{
-	Publish(Event);
-	TotalEventsPublished++;
-}
+		// 校验：实参结构体必须派生自 FAuraEvent（沿 SuperStruct 链向上查找）
+		bool bIsAuraEvent = false;
+		for (const UStruct* S = ScriptStruct; S != nullptr; S = S->GetSuperStruct())
+		{
+			if (S == FAuraEvent::StaticStruct())
+			{
+				bIsAuraEvent = true;
+				break;
+			}
+		}
 
-void UAuraEventBus::PublishXPGained(const FXPGainedEvent& Event)
-{
-	Publish(Event);
-	TotalEventsPublished++;
-}
-
-void UAuraEventBus::PublishLevelUp(const FLevelUpEvent& Event)
-{
-	Publish(Event);
-	TotalEventsPublished++;
-}
-
-void UAuraEventBus::PublishCharacterDeath(const FCharacterDeathEvent& Event)
-{
-	Publish(Event);
-	TotalEventsPublished++;
+		if (bIsAuraEvent)
+		{
+			P_THIS->PublishInternal(ScriptStruct->GetFName(), StructData);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[EventBus] PublishEvent: struct '%s' does not derive from FAuraEvent, ignored."),
+				*ScriptStruct->GetName());
+		}
+	}
+	P_NATIVE_END;
 }
 
 UAuraEventBus* UAuraEventBus::GetEventBus(const UObject* WorldContextObject)

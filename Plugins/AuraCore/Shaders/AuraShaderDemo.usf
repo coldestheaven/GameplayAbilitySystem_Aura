@@ -1,0 +1,59 @@
+// Copyright Druid Mechanics
+//
+// AuraShaderDemo.usf — AuraCore 插件全局着色器演示
+//
+// 包含两个入口：
+//   AuraPatternVS : 全屏三角形顶点着色器（无需顶点缓冲，用 SV_VertexID 生成 3 个顶点）
+//   AuraPatternPS : 像素着色器（奥术主题程序化图案，写入渲染目标）
+//
+// 参数绑定说明（与 C++ 侧 FAuraPatternPSParameters 逐名对应）：
+//   float2 TextureSize : 渲染目标尺寸（像素）
+//   float  Time        : 动画时间（秒）
+//   uint   PatternType : 图案类型（0=奥术波浪 1=同心圆环 2=棋盘）
+
+float2 TextureSize;
+float  Time;
+uint   PatternType;
+
+// 全屏三角形顶点着色器：
+// SV_VertexID 0/1/2 → 屏幕覆盖三角形（经典无顶点缓冲技巧）
+void AuraPatternVS(out float4 OutPosition : SV_Position, uint VertexId : SV_VertexID)
+{
+	float2 UV = float2((VertexId << 1) & 2, VertexId & 2);
+	OutPosition = float4(UV.x * 2.0f - 1.0f, 1.0f - UV.y * 2.0f, 0.0f, 1.0f);
+}
+
+// 像素着色器：SV_Position 为像素坐标（RDG 栅格通道自动提供）
+float4 AuraPatternPS(float4 SVPosition : SV_Position) : SV_Target
+{
+	const float2 UV = SVPosition.xy / TextureSize;
+
+	float3 Color = float3(0.0f, 0.0f, 0.0f);
+
+	if (PatternType == 1)
+	{
+		// 奥术同心圆环：由内向外的扩散光环
+		const float2 Centered = UV - 0.5f;
+		const float Dist = length(Centered) * 2.0f;
+		const float Rings = frac(Dist * 10.0f - Time * 1.5f);
+		const float Ring = smoothstep(0.45f, 0.5f, Rings) * smoothstep(0.55f, 0.5f, Rings);
+		Color = lerp(float3(0.05f, 0.02f, 0.12f), float3(0.55f, 0.35f, 0.95f), Ring);
+	}
+	else if (PatternType == 2)
+	{
+		// 奥术棋盘：金紫相间，随时间流动
+		const float2 Grid = floor(UV * 16.0f);
+		const float Checker = fmod(Grid.x + Grid.y + floor(Time * 4.0f), 2.0f);
+		Color = lerp(float3(0.92f, 0.78f, 0.35f), float3(0.15f, 0.10f, 0.30f), Checker);
+	}
+	else
+	{
+		// 默认：奥术波浪（双色正弦干涉，Aura 主题紫金配色）
+		const float WaveA = sin((UV.x + UV.y) * 20.0f + Time * 3.0f) * 0.5f + 0.5f;
+		const float WaveB = sin((UV.x - UV.y) * 13.0f - Time * 2.0f) * 0.5f + 0.5f;
+		Color = lerp(float3(0.10f, 0.05f, 0.25f), float3(0.45f, 0.30f, 0.90f), WaveA);
+		Color = lerp(Color, float3(0.95f, 0.80f, 0.40f), WaveB * 0.35f);
+	}
+
+	return float4(Color, 1.0f);
+}

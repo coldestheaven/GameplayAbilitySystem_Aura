@@ -1,0 +1,257 @@
+// Copyright Druid Mechanics
+//
+// AuraAnimeRendering.usf — 二次元（赛璐璐/卡通）渲染技术演示
+//
+// 入口：
+//   AnimeVS / AnimeScenePS      : 二次元场景（卡通角色 + 描边 + 动画天空 + 集中线）
+//                                 StyleIndex: 0=完整场景 1=赛璐璐对比球 2=场景+画面风格化
+//   AnimeVS / AnimePostProcessPS: 后处理风格化（对任意输入纹理做 Sobel 描边 + 色阶量化 + 饱和度）
+//
+// 核心技术：
+//   1. Cel/赛璐璐着色：连续光照 → 阶梯色带（step 阈值切带，动画常用冷紫阴影色）
+//   2. Rim Light 边缘光
+//   3. Ink Outline 描边：SDF 边缘带（角色）+ Sobel 边缘检测（后处理）
+//   4. Posterization 色阶量化
+//   5. 集中线（放射状速度线，漫画分镜感）
+//   6. SDF 数值梯度 → 伪法线（2D 形状也能有体积光照）
+
+float2 TextureSize;
+float  Time;
+uint   StyleIndex;
+
+/* ── 后处理专用参数 ── */
+float OutlineStrength;   // 描边强度 0~2
+float ColorSteps;        // 色阶数 2~16
+float SaturationBoost;   // 饱和度倍率 0~2
+
+Texture2D     SourceTexture;       // 后处理输入纹理
+SamplerState  SourceTextureSampler;
+
+/* ═══════════════ 噪声族（与 Lessons 相同） ═══════════════ */
+float Hash12(float2 P)
+{
+	return frac(sin(dot(P, float2(127.1f, 311.7f))) * 43758.5453f);
+}
+float ValueNoise(float2 P)
+{
+	float2 I = floor(P), F = frac(P);
+	F = F * F * (3.0f - 2.0f * F);
+	return lerp(
+		lerp(Hash12(I), Hash12(I + float2(1, 0)), F.x),
+		lerp(Hash12(I + float2(0, 1)), Hash12(I + float2(1, 1)), F.x), F.y);
+}
+float FBM(float2 P)
+{
+	float Sum = 0.0f, Amp = 0.5f;
+	for (int i = 0; i < 4; ++i)
+	{
+		Sum += Amp * ValueNoise(P);
+		P = P * 2.03f + float2(11.7f, 5.3f);
+		Amp *= 0.5f;
+	}
+	return Sum;
+}
+
+/* ═══════════════ SDF ═══════════════ */
+float SDFCircle(float2 P, float2 C, float R) { return length(P - C) - R; }
+float SDFRoundBox(float2 P, float2 C, float2 Half, float Cor)
+{
+	float2 Q = abs(P - C) - Half + Cor;
+	return length(max(Q, 0.0f)) + min(max(Q.x, Q.y), 0.0f) - Cor;
+}
+
+/* ═══════════════ 二次元核心技术 ═══════════════ */
+
+// 赛璐璐三带着色：step 阈值硬切（动画的"色块感"来源）
+float3 CelShade3(float NdotL, float3 BaseColor)
+{
+	const float3 ShadowTint = float3(0.55f, 0.45f, 0.78f);   // 冷紫阴影（动画影色惯例）
+	float Lit = saturate(NdotL);
+	float3 Color = BaseColor * ShadowTint;                    // 带1：暗部
+	Color = lerp(Color, BaseColor * 0.85f, step(0.35f, Lit)); // 带2：中间
+	Color = lerp(Color, BaseColor,        step(0.65f, Lit));  // 带3：亮部
+	return Color;
+}
+
+/* ═══════════════ 二次元角色场景（Style 0 / 2） ═══════════════ */
+float3 RenderAnimeScene(float2 UV, float Time)
+{
+	/* ── 背景：动画天空 ── */
+	float3 Bg = lerp(float3(0.99f, 0.94f, 0.88f), float3(0.45f, 0.72f, 0.96f), UV.y);
+	float Cloud = smoothstep(0.55f, 0.62f, FBM(float2(UV.x * 3.0f + Time * 0.03f, UV.y * 7.0f)));
+	Bg = lerp(Bg, float3(1, 1, 1), Cloud * 0.85f);
+
+	/* ── 集中线：从画面中心放射的速度线 ── */
+	float2 D = UV - float2(0.5f, 0.45f);
+	float Ang = atan2(D.y, D.x);
+	float Rad = length(D);
+	float StripeId = floor(Ang * 28.0f / 6.2831853f);
+	float StripeOn = step(0.6f, Hash12(float2(StripeId, 3.0f)));                 // 部分角度有线
+	float Flow = step(0.25f, frac(Rad * 5.0f - Time * 1.2f));                    // 向外流动
+	Bg = lerp(Bg, float3(0.10f, 0.09f, 0.15f), StripeOn * Flow * smoothstep(0.30f, 0.85f, Rad) * 0.5f);
+
+	/* ── 角色：SDF 组合（画家算法：头发→身体→头→五官） ── */
+	// 头发剪影（后层大圆 + 两侧发束）
+	const float Hair  = SDFCircle(UV, float2(0.0f, 0.60f), 0.175f);
+	const float HairL = SDFCircle(UV, float2(-0.165f, 0.50f), 0.055f);
+	const float HairR = SDFCircle(UV, float2(0.165f, 0.50f), 0.055f);
+	// 身体（水手服）
+	const float Body = SDFRoundBox(UV, float2(0.0f, 0.20f), float2(0.135f, 0.21f), 0.075f);
+	// 头（脸）
+	const float2 HeadC = float2(0.0f, 0.585f);
+	const float HeadR = 0.135f;
+	const float Head = SDFCircle(UV, HeadC, HeadR);
+
+	// 光照方向（左上前方）
+	const float3 L = normalize(float3(-0.35f, 0.45f, 0.82f));
+
+	/* 头发：圆盘 + 数值梯度伪法线 → 赛璐璐 */
+	float3 HairColor = float3(0.36f, 0.30f, 0.62f);   // 蓝紫发色
+	{
+		const float e = 0.004f;
+		const float Sdf = min(min(Hair, HairL), HairR);
+		const float Gx = SDFCircle(UV + float2(e, 0), float2(0.0f, 0.60f), 0.175f) - SDFCircle(UV - float2(e, 0), float2(0.0f, 0.60f), 0.175f);
+		const float Gy = SDFCircle(UV + float2(0, e), float2(0.0f, 0.60f), 0.175f) - SDFCircle(UV - float2(0, e), float2(0.0f, 0.60f), 0.175f);
+		const float3 N = normalize(float3(-Gx, -Gy, 0.22f));
+		float3 Shaded = CelShade3(dot(N, L), HairColor);
+		Shaded += float3(0.9f, 0.85f, 1.0f) * pow(1.0f - saturate(N.z), 3.0f) * 0.35f;   // Rim 边缘光
+		Bg = lerp(Bg, Shaded, smoothstep(0.002f, -0.002f, Sdf));
+	}
+
+	/* 身体：赛璐璐 + 白领巾 */
+	{
+		const float3 N = normalize(float3((UV.x) * -0.8f, (UV.y - 0.2f) * 0.4f, 0.55f));
+		float3 Uniform = CelShade3(dot(N, L), float3(0.16f, 0.17f, 0.28f));   // 深蓝水手服
+		// 领巾（小圆，红色）
+		const float Scarf = SDFCircle(UV, float2(0.0f, 0.335f), 0.035f);
+		Uniform = lerp(Uniform, CelShade3(dot(N, L), float3(0.85f, 0.18f, 0.22f)), step(Scarf, 0.0f));
+		// 白领（横条）
+		Uniform = lerp(Uniform, float3(0.96f, 0.96f, 0.98f), step(abs(UV.y - 0.415f), 0.02f) * step(Body, 0.0f));
+		Bg = lerp(Bg, Uniform, smoothstep(0.002f, -0.002f, Body));
+	}
+
+	/* 脸：球面法线赛璐璐（肤色） */
+	{
+		float2 Local = (UV - HeadC) / HeadR;
+		const float Z2 = saturate(1.0f - dot(Local, Local));
+		const float3 N = normalize(float3(Local, sqrt(Z2) + 0.25f));
+		float3 Skin = CelShade3(dot(N, L), float3(1.0f, 0.88f, 0.82f));
+		Skin += float3(1.0f, 0.75f, 0.72f) * pow(1.0f - saturate(N.z), 2.5f) * 0.35f;   // 脸部 Rim 更柔
+		Bg = lerp(Bg, Skin, smoothstep(0.002f, -0.002f, Head));
+	}
+
+	/* 五官：眼睛（深靛）+ 腮红（半透明粉） */
+	{
+		const float EyeL = SDFCircle(UV, HeadC + float2(-0.048f, -0.005f), 0.0155f);
+		const float EyeR = SDFCircle(UV, HeadC + float2(0.048f, -0.005f), 0.0155f);
+		const float Eye = min(EyeL, EyeR);
+		Bg = lerp(Bg, float3(0.13f, 0.11f, 0.22f), step(Eye, 0.0f));
+		// 高光点
+		const float SparkL = SDFCircle(UV, HeadC + float2(-0.043f, 0.002f), 0.005f);
+		const float SparkR = SDFCircle(UV, HeadC + float2(0.053f, 0.002f), 0.005f);
+		Bg = lerp(Bg, float3(1, 1, 1), step(min(SparkL, SparkR), 0.0f));
+		// 腮红
+		const float BlushL = SDFCircle(UV, HeadC + float2(-0.075f, -0.038f), 0.02f);
+		const float BlushR = SDFCircle(UV, HeadC + float2(0.075f, -0.038f), 0.02f);
+		Bg = lerp(Bg, float3(1.0f, 0.62f, 0.60f), step(min(BlushL, BlushR), 0.0f) * 0.45f);
+	}
+
+	/* ── Ink 描边：SDF 边缘带（角色整体轮廓，深靛而非纯黑） ── */
+	{
+		const float CharSDF = min(min(min(min(Hair, HairL), HairR), Body), Head);
+		const float Ink = smoothstep(0.006f, 0.0f, abs(CharSDF));
+		Bg = lerp(Bg, float3(0.09f, 0.07f, 0.16f), Ink);
+	}
+
+	return Bg;
+}
+
+/* ═══════════════ Style 1：赛璐璐对比球（左：连续光照 右：分带） ═══════════════ */
+float3 RenderCelCompare(float2 UV)
+{
+	const float3 Base = float3(0.85f, 0.45f, 0.55f);
+	const float2 C = float2(0.5f, 0.42f);
+	const float S = SDFCircle(UV, C, 0.30f);
+	if (S > 0.004f)
+	{
+		// 背景：中性灰阶便于观察
+		return lerp(float3(0.32f, 0.33f, 0.36f), float3(0.22f, 0.23f, 0.26f), UV.y);
+	}
+	float2 Local = (UV - C) / 0.30f;
+	const float3 N = normalize(float3(Local, sqrt(saturate(1.0f - dot(Local, Local))) + 0.2f));
+	const float3 L = normalize(float3(-0.4f, 0.55f, 0.72f));
+	const float NdotL = dot(N, L);
+
+	// 左半：连续 Blinn 光照（写实感）
+	float3 Smooth = Base * (0.15f + 0.85f * saturate(NdotL));
+	// 右半：三带赛璐璐
+	float3 Cel = CelShade3(NdotL, Base);
+
+	float3 Color = lerp(Smooth, Cel, step(0.5f, UV.x));
+	// 分界标注线
+	Color = lerp(Color, float3(1, 0.9f, 0.4f), step(abs(UV.x - 0.5f), 0.0015f) * step(S, 0.0f));
+	return Color;
+}
+
+/* ═══════════════ Style 2 画面风格化（整屏色阶 + 饱和度 + 暗角） ═══════════════ */
+float3 ApplyAnimeGrade(float3 Color, float2 UV)
+{
+	Color = floor(Color * 6.0f + 0.5f) / 6.0f;                       // 色阶量化
+	const float Lum = dot(Color, float3(0.299f, 0.587f, 0.114f));
+	Color = lerp(Lum.xxx, Color, 1.35f);                             // 饱和度提升
+	const float Vignette = smoothstep(1.1f, 0.35f, length(UV - 0.5f));
+	Color *= lerp(0.82f, 1.0f, Vignette);                            // 漫画暗角
+	return Color;
+}
+
+/* ═══════════════ 入口 ═══════════════ */
+void AnimeVS(out float4 OutPosition : SV_Position, uint VertexId : SV_VertexID)
+{
+	float2 UV = float2((VertexId << 1) & 2, VertexId & 2);
+	OutPosition = float4(UV.x * 2.0f - 1.0f, 1.0f - UV.y * 2.0f, 0.0f, 1.0f);
+}
+
+float4 AnimeScenePS(float4 SVPosition : SV_Position) : SV_Target
+{
+	const float2 UV = SVPosition.xy / TextureSize;
+	float3 Color;
+	if (StyleIndex == 1)      Color = RenderCelCompare(UV);
+	else
+	{
+		Color = RenderAnimeScene(UV, Time);
+		if (StyleIndex == 2) Color = ApplyAnimeGrade(Color, UV);
+	}
+	return float4(Color, 1.0f);
+}
+
+/* ═══════════════ 后处理入口：把任意输入纹理二次元化 ═══════════════ */
+float4 AnimePostProcessPS(float4 SVPosition : SV_Position) : SV_Target
+{
+	const float2 UV = SVPosition.xy / TextureSize;
+	const float2 Texel = 1.0f / TextureSize;
+
+	// 3x3 Sobel 边缘检测（亮度通道）
+	float L[9];
+	int i = 0;
+	for (int y = -1; y <= 1; ++y)
+	{
+		for (int x = -1; x <= 1; ++x)
+		{
+			const float3 S = SourceTexture.SampleLevel(SourceTextureSampler, UV + Texel * float2(x, y), 0).rgb;
+			L[i++] = dot(S, float3(0.299f, 0.587f, 0.114f));
+		}
+	}
+	const float Gx = (L[2] + 2 * L[5] + L[8]) - (L[0] + 2 * L[3] + L[6]);
+	const float Gy = (L[0] + 2 * L[1] + L[2]) - (L[6] + 2 * L[7] + L[8]);
+	const float Edge = saturate(length(float2(Gx, Gy)) * OutlineStrength * 3.0f);
+
+	// 主体：色阶量化 + 饱和度
+	float3 Color = SourceTexture.SampleLevel(SourceTextureSampler, UV, 0).rgb;
+	Color = floor(Color * ColorSteps + 0.5f) / ColorSteps;
+	const float Lum = dot(Color, float3(0.299f, 0.587f, 0.114f));
+	Color = lerp(Lum.xxx, Color, SaturationBoost);
+
+	// 描边合成（深靛动画描边色）
+	Color = lerp(Color, float3(0.09f, 0.07f, 0.16f), Edge);
+	return float4(Color, 1.0f);
+}

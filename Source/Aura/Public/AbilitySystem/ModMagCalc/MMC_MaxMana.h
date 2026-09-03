@@ -39,6 +39,21 @@ public:
 	 */
 	virtual float CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec& Spec) const override;
 
+protected:
+	/* ======================== 公式系数（数据化，可在蓝图子类默认值中调整） ======================== */
+
+	/** 基础法力值（公式常数项） */
+	UPROPERTY(EditDefaultsOnly, Category = "MaxMana|Coefficients")
+	float BaseValue = 50.f;
+
+	/** 智力（Intelligence）加成系数 */
+	UPROPERTY(EditDefaultsOnly, Category = "MaxMana|Coefficients")
+	float IntelligenceCoefficient = 2.5f;
+
+	/** 等级加成系数 */
+	UPROPERTY(EditDefaultsOnly, Category = "MaxMana|Coefficients")
+	float LevelCoefficient = 15.f;
+
 private:
 	/**
 	 * Intelligence 属性捕获定义

@@ -45,9 +45,23 @@ public:
 	 */
 	UFUNCTION(BlueprintPure)
 	TArray<USceneComponent*> GetGroundPoints(const FVector& GroundLocation, int32 NumPoints, float YawOverride = 0.f);
-	
+
 protected:
 	virtual void BeginPlay() override;
+
+	/* ======================== 地面投影参数（数据化，可在蓝图子类默认值中调整） ======================== */
+
+	/** 地面投影时忽略存活角色的搜索半径（cm） */
+	UPROPERTY(EditDefaultsOnly, Category = "Ground Trace")
+	float IgnoreActorsRadius = 1500.f;
+
+	/** 地面投影射线自点位上/下延伸的高度（cm） */
+	UPROPERTY(EditDefaultsOnly, Category = "Ground Trace")
+	float GroundTraceHeight = 500.f;
+
+	/** 地面投影射线使用的碰撞 Profile 名 */
+	UPROPERTY(EditDefaultsOnly, Category = "Ground Trace")
+	FName GroundTraceProfile = FName("BlockAll");
 
 	/**
 	 * 所有点位的不可变数组（按顺序存储 Pt_0 ~ Pt_10）

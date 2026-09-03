@@ -40,6 +40,21 @@ public:
 	 */
 	virtual float CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec& Spec) const override;
 
+protected:
+	/* ======================== 公式系数（数据化，可在蓝图子类默认值中调整） ======================== */
+
+	/** 基础生命值（公式常数项） */
+	UPROPERTY(EditDefaultsOnly, Category = "MaxHealth|Coefficients")
+	float BaseValue = 80.f;
+
+	/** 活力（Vigor）加成系数 */
+	UPROPERTY(EditDefaultsOnly, Category = "MaxHealth|Coefficients")
+	float VigorCoefficient = 2.5f;
+
+	/** 等级加成系数 */
+	UPROPERTY(EditDefaultsOnly, Category = "MaxHealth|Coefficients")
+	float LevelCoefficient = 10.f;
+
 private:
 	/**
 	 * Vigor 属性捕获定义

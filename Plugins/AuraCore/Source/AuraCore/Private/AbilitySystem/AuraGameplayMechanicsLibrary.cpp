@@ -5,10 +5,9 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AuraAbilityTypes.h"
+#include "AuraFactionTypes.h"
 #include "GameplayTags/AuraGameplayTags.h"
-#include "Game/AuraGameModeBase.h"
 #include "Interaction/CombatInterface.h"
-#include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
 #include "AbilitySystem/AuraEffectContextLibrary.h"
 
@@ -65,8 +64,8 @@ void UAuraGameplayMechanicsLibrary::GetClosestTargets(int32 MaxTargets, const TA
 
 bool UAuraGameplayMechanicsLibrary::IsNotFriend(AActor* FirstActor, AActor* SecondActor)
 {
-	const bool bBothArePlayers = FirstActor->ActorHasTag(FName("Player")) && SecondActor->ActorHasTag(FName("Player"));
-	const bool bBothAreEnemies = FirstActor->ActorHasTag(FName("Enemy")) && SecondActor->ActorHasTag(FName("Enemy"));
+	const bool bBothArePlayers = FirstActor->ActorHasTag(AuraFaction::Player()) && SecondActor->ActorHasTag(AuraFaction::Player());
+	const bool bBothAreEnemies = FirstActor->ActorHasTag(AuraFaction::Enemy()) && SecondActor->ActorHasTag(AuraFaction::Enemy());
 	const bool bFriends = bBothArePlayers || bBothAreEnemies;
 	return !bFriends;
 }
@@ -137,19 +136,6 @@ TArray<FVector> UAuraGameplayMechanicsLibrary::EvenlyRotatedVectors(const FVecto
 		Vectors.Add(Forward);
 	}
 	return Vectors;
-}
-
-int32 UAuraGameplayMechanicsLibrary::GetXPRewardForClassAndLevel(const UObject* WorldContextObject, ECharacterClass CharacterClass, int32 CharacterLevel)
-{
-	const AAuraGameModeBase* AuraGameMode = Cast<AAuraGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
-	if (AuraGameMode == nullptr) return 0;
-
-	UCharacterClassInfo* CharacterClassInfo = AuraGameMode->CharacterClassInfo;
-	if (CharacterClassInfo == nullptr) return 0;
-
-	const FCharacterClassDefaultInfo& Info = CharacterClassInfo->GetClassDefaultInfo(CharacterClass);
-	const float XPReward = Info.XPReward.GetValueAtLevel(CharacterLevel);
-	return static_cast<int32>(XPReward);
 }
 
 void UAuraGameplayMechanicsLibrary::SetIsRadialDamageEffectParam(FDamageEffectParams& DamageEffectParams, bool bIsRadial, float InnerRadius, float OuterRadius, FVector Origin)

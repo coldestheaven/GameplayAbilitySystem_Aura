@@ -31,6 +31,9 @@ public class AuraCore : ModuleRules
 				"GameplayTasks",
 				"GameplayAbilities",
 				"Niagara",
+				// 着色器支持（FGlobalShader / RDG / RHI 命令列表）
+				"RenderCore",
+				"RHI",
 			}
 		);
 

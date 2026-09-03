@@ -9,10 +9,7 @@
 #include "Game/LoadScreenSaveGame.h"
 #include "Interaction/CombatInterface.h"
 #include "Kismet/GameplayStatics.h"
-#include "Player/AuraPlayerState.h"
 #include "Engine/OverlapResult.h"
-#include "UI/HUD/AuraHUD.h"
-#include "UI/WidgetController/AuraWidgetController.h"
 
 // EffectContext 读写已迁移到 AuraEffectContextLibrary，此处 include 由头文件传递
 
@@ -26,60 +23,6 @@ static void ApplyGEToASC(UAbilitySystemComponent* ASC, TSubclassOf<UGameplayEffe
 	ContextHandle.AddSourceObject(ASC->GetAvatarActor());
 	const FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GEClass, Level, ContextHandle);
 	ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-}
-
-bool UAuraAbilitySystemLibrary::MakeWidgetControllerParams(const UObject* WorldContextObject, FWidgetControllerParams& OutWCParams, AAuraHUD*& OutAuraHUD)
-{
-	if (APlayerController* PC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
-	{
-		OutAuraHUD = Cast<AAuraHUD>(PC->GetHUD());
-		if (OutAuraHUD)
-		{
-			AAuraPlayerState* PS = PC->GetPlayerState<AAuraPlayerState>();
-			UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
-			UAttributeSet* AS = PS->GetAttributeSet();
-
-			OutWCParams.AttributeSet = AS;
-			OutWCParams.AbilitySystemComponent = ASC;
-			OutWCParams.PlayerState = PS;
-			OutWCParams.PlayerController = PC;
-			return true;
-		}
-	}
-	return false;
-}
-
-UOverlayWidgetController* UAuraAbilitySystemLibrary::GetOverlayWidgetController(const UObject* WorldContextObject)
-{
-	FWidgetControllerParams WCParams;
-	AAuraHUD* AuraHUD = nullptr;
-	if (MakeWidgetControllerParams(WorldContextObject, WCParams, AuraHUD))
-	{
-		return AuraHUD->GetOverlayWidgetController(WCParams);
-	}
-	return nullptr;
-}
-
-UAttributeMenuWidgetController* UAuraAbilitySystemLibrary::GetAttributeMenuWidgetController(const UObject* WorldContextObject)
-{
-	FWidgetControllerParams WCParams;
-	AAuraHUD* AuraHUD = nullptr;
-	if (MakeWidgetControllerParams(WorldContextObject, WCParams, AuraHUD))
-	{
-		return AuraHUD->GetAttributeMenuWidgetController(WCParams);
-	}
-	return nullptr;
-}
-
-USpellMenuWidgetController* UAuraAbilitySystemLibrary::GetSpellMenuWidgetController(const UObject* WorldContextObject)
-{
-	FWidgetControllerParams WCParams;
-	AAuraHUD* AuraHUD = nullptr;
-	if (MakeWidgetControllerParams(WorldContextObject, WCParams, AuraHUD))
-	{
-		return AuraHUD->GetSpellMenuWidgetController(WCParams);
-	}
-	return nullptr;
 }
 
 void UAuraAbilitySystemLibrary::InitializeDefaultAttributes(const UObject* WorldContextObject, ECharacterClass CharacterClass, float Level, UAbilitySystemComponent* ASC)
@@ -142,13 +85,21 @@ void UAuraAbilitySystemLibrary::GiveStartupAbilities(const UObject* WorldContext
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 以下游戏机制函数均为「兼容转发」：实际实现位于 UAuraGameplayMechanicsLibrary
-// （该库为游戏机制的权威实现）。保留此处转发以维持既有 C++/蓝图调用点不变，
-// 避免重复维护两份相同逻辑。
+// 以下游戏机制函数均为「兼容转发」：实际实现位于 AuraCore 插件的
+// UAuraGameplayMechanicsLibrary（该库为游戏机制的权威实现）。
+// 保留此处转发以维持既有 C++/蓝图调用点不变，避免重复维护两份相同逻辑。
+//
+// 例外：GetXPRewardForClassAndLevel 依赖本模块的 AAuraGameModeBase /
+// UCharacterClassInfo（插件不能反向依赖游戏模块），故直接在本模块实现。
 // ─────────────────────────────────────────────────────────────────────────────
 int32 UAuraAbilitySystemLibrary::GetXPRewardForClassAndLevel(const UObject* WorldContextObject, ECharacterClass CharacterClass, int32 CharacterLevel)
 {
-	return UAuraGameplayMechanicsLibrary::GetXPRewardForClassAndLevel(WorldContextObject, CharacterClass, CharacterLevel);
+	UCharacterClassInfo* CharacterClassInfo = GetCharacterClassInfo(WorldContextObject);
+	if (CharacterClassInfo == nullptr) return 0;
+
+	const FCharacterClassDefaultInfo& Info = CharacterClassInfo->GetClassDefaultInfo(CharacterClass);
+	const float XPReward = Info.XPReward.GetValueAtLevel(CharacterLevel);
+	return static_cast<int32>(XPReward);
 }
 
 void UAuraAbilitySystemLibrary::SetIsRadialDamageEffectParam(FDamageEffectParams& DamageEffectParams, bool bIsRadial, float InnerRadius, float OuterRadius, FVector Origin)

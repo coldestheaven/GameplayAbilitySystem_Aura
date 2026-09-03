@@ -14,76 +14,33 @@ class ULootTiers;
 class ULoadScreenSaveGame;
 class UAbilityInfo;
 class UAttributeInfo;
-class USpellMenuWidgetController;
 class UAbilitySystemComponent;
-class UAttributeMenuWidgetController;
-class UOverlayWidgetController;
-struct FWidgetControllerParams;
 
 /**
  * Aura 能力系统工具库（蓝图函数库）
  *
  * 提供全局静态工具函数，分为以下几类：
- * 1. Widget Controller 获取（通过 WorldContext 获取各种 WidgetController）
- * 2. 角色默认属性初始化（根据职业和等级应用 GE）
- * 3. 游戏机制工具（范围内存活玩家、最近目标、阵营判断等）
- * 4. 伤害效果参数工具（构建和修改 FDamageEffectParams）
+ * 1. 角色默认属性初始化（根据职业和等级应用 GE）
+ * 2. 游戏机制工具（范围内存活玩家、最近目标、阵营判断等；实际实现位于
+ *    AuraCore 插件的 UAuraGameplayMechanicsLibrary，此处为兼容转发）
+ * 3. 伤害效果参数工具（构建和修改 FDamageEffectParams）
  *
- * ⚠️ EffectContext 读写（Getter/Setter）已迁移到 UAuraEffectContextLibrary
- *    请直接使用 UAuraEffectContextLibrary::IsBlockedHit(...) 等函数
- *    此文件 include 了 AuraEffectContextLibrary.h，无需修改现有 include 路径
+ * ⚠️ 已迁出的职责（调用点经 CoreRedirects 自动重定向，无需修改）：
+ * - EffectContext 读写 → UAuraEffectContextLibrary（AuraCore 插件）
+ * - WidgetController 获取 → UAuraUILibrary（UI 层，关注点分离）
  *
  * 使用示例（蓝图中）：
- *   // 获取 OverlayWidgetController
- *   UOverlayWidgetController* OWC = UAuraAbilitySystemLibrary::GetOverlayWidgetController(this);
  *   // 获取范围内存活玩家
  *   TArray<AActor*> Players;
  *   UAuraAbilitySystemLibrary::GetLivePlayersWithinRadius(this, Players, IgnoreActors, 500.f, Origin);
- *   // EffectContext 读写（使用新库）
- *   bool bCrit = UAuraEffectContextLibrary::IsCriticalHit(EffectContextHandle);
+ *   // 获取 WidgetController（已迁移至 UI 库）
+ *   UOverlayWidgetController* OWC = UAuraUILibrary::GetOverlayWidgetController(this);
  */
 UCLASS()
 class AURA_API UAuraAbilitySystemLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-
-	/* ======================== Widget Controller 获取 ======================== */
-
-	/**
-	 * 构建 WidgetControllerParams 并获取 AuraHUD
-	 * 从 WorldContext 中获取 PlayerController、PlayerState、ASC、AttributeSet
-	 * @param WorldContextObject 世界上下文对象（通常传 self）
-	 * @param OutWCParams        输出：填充好的 WidgetControllerParams
-	 * @param OutAuraHUD         输出：AuraHUD 引用
-	 * @return true 表示成功获取所有必要对象
-	 */
-	UFUNCTION(BlueprintPure, Category="AuraAbilitySystemLibrary|WidgetController", meta = (DefaultToSelf = "WorldContextObject"))
-	static bool MakeWidgetControllerParams(const UObject* WorldContextObject, FWidgetControllerParams& OutWCParams, AAuraHUD*& OutAuraHUD);
-	
-	/**
-	 * 获取 OverlayWidgetController（主 HUD 控制器）
-	 * @param WorldContextObject 世界上下文对象
-	 * @return OverlayWidgetController 实例
-	 */
-	UFUNCTION(BlueprintPure, Category="AuraAbilitySystemLibrary|WidgetController", meta = (DefaultToSelf = "WorldContextObject"))
-	static UOverlayWidgetController* GetOverlayWidgetController(const UObject* WorldContextObject);
-
-	/**
-	 * 获取 AttributeMenuWidgetController（属性菜单控制器）
-	 * @param WorldContextObject 世界上下文对象
-	 * @return AttributeMenuWidgetController 实例
-	 */
-	UFUNCTION(BlueprintPure, Category="AuraAbilitySystemLibrary|WidgetController", meta = (DefaultToSelf = "WorldContextObject"))
-	static UAttributeMenuWidgetController* GetAttributeMenuWidgetController(const UObject* WorldContextObject);
-
-	/**
-	 * 获取 SpellMenuWidgetController（技能菜单控制器）
-	 * @param WorldContextObject 世界上下文对象
-	 * @return SpellMenuWidgetController 实例
-	 */
-	UFUNCTION(BlueprintPure, Category="AuraAbilitySystemLibrary|WidgetController", meta = (DefaultToSelf = "WorldContextObject"))
-	static USpellMenuWidgetController* GetSpellMenuWidgetController(const UObject* WorldContextObject);
 
 	/* ======================== 角色默认属性初始化 ======================== */
 

@@ -7,19 +7,22 @@
 #include "AuraEffectContextLibrary.generated.h"
 
 /**
- * Aura EffectContext 工具库
+ * Aura EffectContext 工具库（AuraCore 插件）
  *
  * 专门负责读写 FAuraGameplayEffectContext 中的自定义字段。
- * 从 UAuraAbilitySystemLibrary 中拆分出来，职责单一：
+ * 职责单一：
  * - Getter：读取 EffectContext 中的自定义字段（格挡、暴击、Debuff、冲量等）
  * - Setter：写入 EffectContext 中的自定义字段
+ *
+ * 原位于游戏模块（/Script/Aura），已下沉到 AuraCore 插件（/Script/AuraCore），
+ * 因其仅依赖插件内的 FAuraGameplayEffectContext，无任何游戏模块依赖。
  *
  * 使用示例：
  *   bool bCrit = UAuraEffectContextLibrary::IsCriticalHit(EffectContextHandle);
  *   UAuraEffectContextLibrary::SetIsBlockedHit(EffectContextHandle, true);
  */
 UCLASS()
-class AURA_API UAuraEffectContextLibrary : public UBlueprintFunctionLibrary
+class AURACORE_API UAuraEffectContextLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:

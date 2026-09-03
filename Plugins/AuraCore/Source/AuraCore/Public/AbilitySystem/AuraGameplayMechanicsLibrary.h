@@ -4,20 +4,28 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "Data/CharacterClassInfo.h"
 #include "AuraGameplayMechanicsLibrary.generated.h"
 
 struct FDamageEffectParams;
 
 /**
- * Aura 游戏机制工具库
+ * Aura 游戏机制工具库（AuraCore 插件）
  *
- * 专门负责游戏机制相关的静态工具函数，从 UAuraAbilitySystemLibrary 中拆分出来：
+ * 通用游戏机制的权威实现，仅依赖插件内类型（ICombatInterface / FAuraGameplayTags /
+ * FDamageEffectParams / UAuraEffectContextLibrary），无任何游戏模块依赖：
  * - 范围查询（球形范围内存活玩家、最近目标）
  * - 阵营判断（IsNotFriend）
  * - 伤害效果应用（ApplyDamageEffect）
  * - 投射物方向计算（EvenlySpacedRotators / EvenlyRotatedVectors）
  * - 伤害效果参数工具（SetIsRadialDamageEffectParam 等）
+ *
+ * 原位于游戏模块（/Script/Aura），已下沉到 AuraCore 插件（/Script/AuraCore）。
+ * 游戏模块的 UAuraAbilitySystemLibrary 中保留了同名兼容转发，
+ * 既有 C++/蓝图调用点无需修改。
+ *
+ * 注意：GetXPRewardForClassAndLevel 未随迁（依赖游戏模块的
+ * AAuraGameModeBase / UCharacterClassInfo），保留在游戏模块的
+ * UAuraAbilitySystemLibrary 中。
  *
  * 使用示例：
  *   TArray<AActor*> Players;
@@ -25,7 +33,7 @@ struct FDamageEffectParams;
  *   bool bEnemy = UAuraGameplayMechanicsLibrary::IsNotFriend(ActorA, ActorB);
  */
 UCLASS()
-class AURA_API UAuraGameplayMechanicsLibrary : public UBlueprintFunctionLibrary
+class AURACORE_API UAuraGameplayMechanicsLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
@@ -73,11 +81,6 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "AuraGameplayMechanicsLibrary|GameplayMechanics")
 	static TArray<FVector> EvenlyRotatedVectors(const FVector& Forward, const FVector& Axis, float Spread, int32 NumVectors);
-
-	/**
-	 * 根据职业类型和等级获取击杀 XP 奖励
-	 */
-	static int32 GetXPRewardForClassAndLevel(const UObject* WorldContextObject, ECharacterClass CharacterClass, int32 CharacterLevel);
 
 	/* ======================== 伤害效果参数工具 ======================== */
 

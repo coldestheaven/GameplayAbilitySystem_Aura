@@ -1,0 +1,271 @@
+// Copyright Druid Mechanics
+//
+// AuraShaderLessons.usf — 渐进式 Shader 学习课程（共 6 课）
+//
+// 课程表：
+//   Lesson 1: 渐变与 Uniform 参数（最基础：常量绑定 + UV 插值）
+//   Lesson 2: SDF 有符号距离场（形状数学 + 布尔运算 + 抗锯齿）
+//   Lesson 3: 程序化噪声（Hash + Value Noise + FBM 分形叠加）
+//   Lesson 4: UV 变换（漩涡扭曲 + 万花筒折叠）
+//   Lesson 5: 程序化法线与 Blinn-Phong 光照（差分法线 + 漫反射/高光）
+//   Lesson 6: 计算着色器（UAV 写入 + 线程组分发，入口 Lesson6_ComputeCS）
+//
+// 共享 Uniform（与 C++ 参数结构逐名对应）：
+//   TextureSize : 渲染目标尺寸（像素）
+//   Time        : 动画时间（秒）
+//   LessonIndex : 当前课程编号（仅像素着色器使用）
+
+float2 TextureSize;
+float  Time;
+uint   LessonIndex;
+
+// ═══════════════ 共享工具函数 ═══════════════
+
+// 标量哈希：把 2D 坐标映射到 [0,1) 伪随机数（噪声的基石）
+float Hash12(float2 P)
+{
+	return frac(sin(dot(P, float2(127.1f, 311.7f))) * 43758.5453f);
+}
+
+// Value Noise：网格四角哈希 + 双线性插值（smoothstep 缓动让过渡平滑）
+float ValueNoise(float2 P)
+{
+	float2 I = floor(P);
+	float2 F = frac(P);
+	F = F * F * (3.0f - 2.0f * F);   // smoothstep 缓动
+
+	const float a = Hash12(I);
+	const float b = Hash12(I + float2(1.0f, 0.0f));
+	const float c = Hash12(I + float2(0.0f, 1.0f));
+	const float d = Hash12(I + float2(1.0f, 1.0f));
+
+	return lerp(lerp(a, b, F.x), lerp(c, d, F.x), F.y);
+}
+
+// FBM 分形布朗运动：多倍频噪声叠加（程序化云/地形/火焰的标准配方）
+float FBM(float2 P)
+{
+	float Sum = 0.0f;
+	float Amp = 0.5f;
+	for (int i = 0; i < 5; ++i)
+	{
+		Sum += Amp * ValueNoise(P);
+		P = P * 2.03f + float2(11.7f, 5.3f);   // 倍频 + 偏移避免对齐
+		Amp *= 0.5f;                            // 振幅减半
+	}
+	return Sum;
+}
+
+// L5 用：程序化高度场（FBM + 双正弦）
+float TerrainHeight(float2 P, float Time)
+{
+	return FBM(P * 4.0f) * 0.6f
+		+ 0.25f * sin(P.x * 9.0f + Time)
+		+ 0.15f * sin(P.y * 7.0f - Time * 0.7f);
+}
+
+// ═══════════════ Lesson 1: 渐变与 Uniform ═══════════════
+
+float3 Lesson1_Gradient(float2 UV, float Time)
+{
+	const float3 TopColor    = float3(0.95f, 0.80f, 0.40f);   // 金
+	const float3 BottomColor = float3(0.20f, 0.08f, 0.45f);   // 紫
+
+	// 垂直线性插值：UV.y 从 0(底) 到 1(顶)
+	float3 Color = lerp(BottomColor, TopColor, UV.y);
+
+	// 水平正弦条纹：UV.x * 频率 + Time 实现流动
+	Color += 0.10f * sin(UV.x * 12.0f + Time * 2.0f);
+
+	// 底部标尺：step 硬边刻度线（每 0.1 一格）
+	const float Ruler = step(0.96f, frac(UV.x * 10.0f)) * 0.15f * (1.0f - UV.y);
+	return Color + Ruler;
+}
+
+// ═══════════════ Lesson 2: SDF 形状与布尔运算 ═══════════════
+
+// 圆的 SDF：返回点到圆边缘的有符号距离（负=内部）
+float SDFCircle(float2 P, float2 Center, float Radius)
+{
+	return length(P - Center) - Radius;
+}
+
+// 圆角矩形 SDF（2D SDF 经典公式）
+float SDFRoundBox(float2 P, float2 Center, float2 HalfSize, float CornerRadius)
+{
+	float2 Q = abs(P - Center) - HalfSize + CornerRadius;
+	return length(max(Q, 0.0f)) + min(max(Q.x, Q.y), 0.0f) - CornerRadius;
+}
+
+float3 Lesson2_SDF(float2 UV, float Time)
+{
+	const float2 P = UV - 0.5f;
+
+	// 左：往返移动的圆
+	const float Circle = SDFCircle(P, float2(-0.18f + 0.08f * sin(Time * 1.5f), 0.08f * cos(Time)), 0.20f);
+
+	// 右：圆角方框取 abs → 实心框变"描边环"
+	const float Box = SDFRoundBox(P, float2(0.18f, 0.0f), float2(0.20f, 0.20f), 0.05f);
+	const float BoxRing = abs(Box) - 0.015f;
+
+	// 布尔并集 = min（减法 = max(a,-b)，交集 = max）
+	const float Shape = min(Circle, BoxRing);
+
+	// smoothstep 抗锯齿填充（过渡带宽度即像素级 AA）
+	const float Fill = 1.0f - smoothstep(-0.003f, 0.003f, Shape);
+
+	// 金色描边辉光：exp 衰减
+	const float Glow = exp(-abs(Shape) * 50.0f);
+
+	float3 Color = lerp(float3(0.04f, 0.04f, 0.07f), float3(0.55f, 0.35f, 0.95f), Fill);
+	Color += float3(0.95f, 0.80f, 0.40f) * Glow * 0.6f;
+	return Color;
+}
+
+// ═══════════════ Lesson 3: 程序化噪声（火焰配色） ═══════════════
+
+float3 Lesson3_Noise(float2 UV, float Time)
+{
+	// UV*频率 控制"密度"，-Time*0.3 让纹理向上飘（火焰上升感）
+	const float N = FBM(UV * 5.0f + float2(0.0f, -Time * 0.3f));
+
+	// 三段配色：暗紫 → 橙 → 亮金（smoothstep 分段映射）
+	float3 Color = float3(0.08f, 0.02f, 0.15f);
+	Color = lerp(Color, float3(0.85f, 0.30f, 0.10f), smoothstep(0.35f, 0.65f, N));
+	Color = lerp(Color, float3(1.00f, 0.85f, 0.40f), smoothstep(0.60f, 0.85f, N));
+	return Color;
+}
+
+// ═══════════════ Lesson 4: UV 变换（漩涡 + 万花筒） ═══════════════
+
+// 万花筒折叠：把整圆按 Segments 份镜像折叠
+float2 Kaleidoscope(float2 UV, int Segments)
+{
+	const float2 C = UV - 0.5f;
+	const float Radius = length(C);
+	float Angle = atan2(C.y, C.x);
+	const float Seg = 6.2831853f / (float)Segments;
+	Angle = abs(fmod(Angle + Seg * 0.5f, Seg) - Seg * 0.5f);
+	return float2(cos(Angle), sin(Angle)) * Radius + 0.5f;
+}
+
+float3 Lesson4_UVWarp(float2 UV, float Time)
+{
+	// 漩涡：距中心越近旋转角越大（+ 时间缓慢自旋）
+	const float2 C = UV - 0.5f;
+	const float Radius = length(C);
+	const float Twist = (1.0f - Radius) * 5.0f + Time * 0.8f;
+	const float S = sin(Twist);
+	const float Cx = cos(Twist);
+	float2 Warped = float2(C.x * Cx - C.y * S, C.x * S + C.y * Cx) + 0.5f;
+
+	// 万花筒折叠（6 镜像）
+	Warped = Kaleidoscope(Warped, 6);
+
+	// 用"扭曲后的 UV"采样 FBM —— UV 变换的本质：先改坐标再采样
+	const float N = FBM(Warped * 6.0f);
+	float3 Color = lerp(float3(0.05f, 0.10f, 0.20f), float3(0.35f, 0.90f, 0.80f), N);
+
+	// 中心亮斑
+	Color += float3(0.90f, 0.80f, 0.40f) * exp(-Radius * 5.0f) * 0.6f;
+	return Color;
+}
+
+// ═══════════════ Lesson 5: 程序化法线与 Blinn-Phong 光照 ═══════════════
+
+float3 Lesson5_Lighting(float2 UV, float Time)
+{
+	// 高度差分求法线：对高度场取 x/y 方向差分，z 分量控制凹凸强度
+	const float e = 0.004f;
+	const float HL = TerrainHeight(UV - float2(e, 0.0f), Time);
+	const float HR = TerrainHeight(UV + float2(e, 0.0f), Time);
+	const float HB = TerrainHeight(UV - float2(0.0f, e), Time);
+	const float HT = TerrainHeight(UV + float2(0.0f, e), Time);
+	const float3 Normal = normalize(float3(HL - HR, HB - HT, 0.05f));
+
+	// 环绕移动的点光源
+	const float3 LightPos = float3(0.5f + 0.35f * cos(Time), 0.5f + 0.35f * sin(Time * 0.8f), 0.30f);
+	const float3 LightDir = normalize(LightPos - float3(UV, 0.0f));
+
+	// Blinn-Phong：漫反射(N·L) + 半角向量高光(N·H)^幂
+	const float Diffuse = saturate(dot(Normal, LightDir));
+	const float3 HalfVec = normalize(LightDir + float3(0.0f, 0.0f, 1.0f));
+	const float Specular = pow(saturate(dot(Normal, HalfVec)), 48.0f);
+
+	// 基色按高度渐变（低=深紫 高=亮紫）
+	const float Height = TerrainHeight(UV, Time);
+	const float3 BaseColor = lerp(float3(0.10f, 0.06f, 0.18f), float3(0.60f, 0.40f, 0.95f), saturate(Height));
+
+	// 环境光(0.2) + 漫反射(0.8) + 高光
+	float3 Color = BaseColor * (0.20f + 0.80f * Diffuse);
+	Color += float3(1.00f, 0.95f, 0.80f) * Specular * 0.9f;
+
+	// 标记光源位置（小亮圆，注意 smoothstep 边界需从小到大）
+	const float LightDist = length(UV - LightPos.xy);
+	Color += float3(1.00f, 0.85f, 0.50f) * (1.0f - smoothstep(0.0f, 0.025f, LightDist));
+	return Color;
+}
+
+// ═══════════════ 顶点/像素入口（Lesson 1~5 共用） ═══════════════
+
+// 全屏三角形（SV_VertexID 生成，无顶点缓冲）
+void AuraLessonVS(out float4 OutPosition : SV_Position, uint VertexId : SV_VertexID)
+{
+	float2 UV = float2((VertexId << 1) & 2, VertexId & 2);
+	OutPosition = float4(UV.x * 2.0f - 1.0f, 1.0f - UV.y * 2.0f, 0.0f, 1.0f);
+}
+
+// 像素入口：按 LessonIndex 分发到各课实现
+float4 AuraLessonPS(float4 SVPosition : SV_Position) : SV_Target
+{
+	const float2 UV = SVPosition.xy / TextureSize;
+
+	float3 Color;
+	if (LessonIndex == 2)      Color = Lesson2_SDF(UV, Time);
+	else if (LessonIndex == 3) Color = Lesson3_Noise(UV, Time);
+	else if (LessonIndex == 4) Color = Lesson4_UVWarp(UV, Time);
+	else if (LessonIndex == 5) Color = Lesson5_Lighting(UV, Time);
+	else                       Color = Lesson1_Gradient(UV, Time);
+
+	return float4(Color, 1.0f);
+}
+
+// ═══════════════ Lesson 6: 计算着色器 ═══════════════
+
+// UAV 输出纹理（CS 可随机读写，与 RT 绑定槽不同）
+RWTexture2D<float4> OutputTexture;
+
+// 线程组 8x8：每个线程负责一个像素
+[numthreads(8, 8, 1)]
+void Lesson6_ComputeCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	// SV_DispatchThreadID = 全局线程坐标，直接对应像素坐标
+	const float2 UV = (float2)DispatchThreadId.xy / TextureSize;
+
+	// 等离子：三重正弦干涉 + FBM 扰动
+	float V = sin(UV.x * 12.0f + Time)
+		+ sin((UV.x + UV.y) * 10.0f - Time * 1.3f)
+		+ sin(length(UV - 0.5f) * 24.0f + Time * 0.7f);
+	V = V / 3.0f * 0.5f + 0.5f;
+
+	const float N = FBM(UV * 4.0f + Time * 0.05f);
+	const float Mix = saturate(V * 0.7f + N * 0.5f);
+
+	// 青白等离子配色
+	float3 Color = lerp(float3(0.02f, 0.05f, 0.15f), float3(0.30f, 0.85f, 0.90f), Mix);
+	Color = lerp(Color, float3(0.95f, 0.95f, 1.00f), smoothstep(0.75f, 0.95f, Mix));
+
+	// UAV 随机写：CS 不按光栅顺序，由线程坐标定位像素
+	OutputTexture[DispatchThreadId.xy] = float4(Color, 1.0f);
+}
+
+// ═══════════════ Blit 入口：采样源纹理直通输出（计算结果 → RT） ═══════════════
+
+Texture2D    BlitSourceTexture;
+SamplerState BlitSourceSampler;
+
+float4 AuraBlitPS(float4 SVPosition : SV_Position) : SV_Target
+{
+	const float2 UV = SVPosition.xy / TextureSize;
+	return BlitSourceTexture.SampleLevel(BlitSourceSampler, UV, 0);
+}
